@@ -12,11 +12,11 @@ The framework is mainly developed and tested under a Unix-based operating system
 [![python version](https://img.shields.io/badge/python-3.11-blue)]()
 
 <p align="center">
-    <img src="https://github.com/NTNU-TTO/SFI-AutoShip-COLAV-simulator/blob/main/gym_env_teaser.gif?raw=true" width="1000px"><br/>
+    <img src="https://github.com/NTNU-TTO/colav-simulator/blob/main/gym_env_teaser.gif?raw=true" width="1000px"><br/>
     <em>Example visualization of a DRL-based MPC algorithm run in multiple evaluation episodes using the COLAVEnvironment Gymnasium functionality.</em>
 </p>
 <p align="center">
-    <img src="https://github.com/NTNU-TTO/SFI-AutoShip-COLAV-simulator/blob/main/teaser.gif?raw=true" width="1000px"><br/>
+    <img src="https://github.com/NTNU-TTO/colav-simulator/blob/main/teaser.gif?raw=true" width="1000px"><br/>
     <em>Another episode sample from the COLAVEnvironment.</em>
 </p>
 
@@ -54,12 +54,12 @@ If you are using `RRTs` from `rrt-rs` for ship behavior generation in your work 
 ## Dependencies
 Are all outlined in setup.cfg. Non-pip packages to install are
 
-- rrt-rs: https://github.com/NTNU-Autoship-Internal/rrt-rs optionally for ship behavior generation. To be open sourced.
-- vimmjipda: <https://github.com/NTNU-Autoship-Internal/vimmjipda> for Multi-Target Tracking functionality. To be open sourced.
+- rrt-rs: https://github.com/ntnu-itk-autonomous-ship-lab/rrt-rs optionally for ship behavior generation. To be open sourced.
+- vimmjipda: <https://github.com/ntnu-itk-autonomous-ship-lab/vimmjipda> for Multi-Target Tracking functionality. To be open sourced.
 - colav_evaluation_tool: https://github.com/trymte/colav_evaluation_tool (optional dependency only for the `test_simulation_and_evaluation.py` test file). Closed source.
 
 ## Generic Install Instructions
-`seacharts`, `vimmjipda` and the `colav_evaluation_tool` (optional) are non-pip package dependencies in the simulator. Install these as editable packages first using `pip install -e .` in their respective root folders. For `rrt-rs` (also optional), follow the install instructions at <https://github.com/NTNU-Autoship-Internal/rrt-rs>. Then, install this simulator package using the same `pip install -e .` command inside the `colav_simulator` root folder. All of these packages should be installed using the same Python environment (e.g. a virtual or Conda environment).
+`seacharts`, `vimmjipda` and the `colav_evaluation_tool` (optional) are non-pip package dependencies in the simulator. Install these as editable packages first using `pip install -e .` in their respective root folders. For `rrt-rs` (also optional), follow the install instructions at <https://github.com/ntnu-itk-autonomous-ship-lab/rrt-rs>. Then, install this simulator package using the same `pip install -e .` command inside the `colav_simulator` root folder. All of these packages should be installed using the same Python environment (e.g. a virtual or Conda environment).
 
 To use `seacharts` in the simulator, you should download `.gdb` files from <https://kartkatalog.geonorge.no> in UTM 32 or 33 (see <https://github.com/trymte/seacharts> for instructions), and put into the `data/external` folder in the seacharts package directory. Otherwise, the module will not find any ENC data to use.
 
@@ -85,8 +85,8 @@ conda create --name ENV_NAME python=3.10
 conda activate ENV_NAME
 ```
 
-Go to your projects directory and clone the simulator repository with
-`git clone https://github.com/NTNU-Autoship-Internal/colav_simulator.git`
+Clone the simulator repository with
+`git clone https://github.com/NTNU-TTO/colav_simulator.git`
 
 Install dependencies to the virtual environment with
 `conda install -n ENV_NAME -c conda-forge fiona cartopy matplotlib`
@@ -104,7 +104,7 @@ git clone https://github.com/trymte/colav_evaluation_tool.git
 cd colav_evaluation_tool
 pip install -e .
 ```
-and rrt-rs using instructions at <https://github.com/NTNU-Autoship-Internal/rrt-rs>.
+and rrt-rs using instructions at <https://github.com/ntnu-itk-autonomous-ship-lab/rrt-rs>.
 
 Install dependencies for the simulator. Go to the colav_simulator directory and run
 `pip install -e .`
@@ -311,7 +311,7 @@ If you want to test your planning algorithm with perfect knowledge on nearby ves
 The standard support for target tracking in the simulator is to use a Kalman Filter for estimating the states of nearby vessels. Most of the scenario files have examples on how to configure this tracker. Tune the measurement covariance (R) through the sensor configuration, and adjust the scenario configuration based on whether or not you want to consider AIS-measurements, Radar-measurements or both. See the `tests/test_simulator.py` for example usage and `tests/test_radar.py` for the `Radar` class functionality.
 
 #### Multi-Target Tracking with Realistic Track Initiation and Termination
-An interface at <https://github.com/NTNU-Autoship-Internal/vimmjipda> exist for coupling the Visibility Interacting Multiple Models Joint Integrated Probabilistic Data Association (VIMMJIPDA) Multi-Target Tracker (MTT) with the simulator, and can be used with the `Radar` sensor (no AIS consideration implemented yet) for tracking multiple ships with simple clutter noise.  See the `tests/test_simulator_jipda.py`for example usage.
+An interface at <https://github.com/ntnu-itk-autonomous-ship-lab/vimmjipda> exist for coupling the Visibility Interacting Multiple Models Joint Integrated Probabilistic Data Association (VIMMJIPDA) Multi-Target Tracker (MTT) with the simulator, and can be used with the `Radar` sensor (no AIS consideration implemented yet) for tracking multiple ships with simple clutter noise.  See the `tests/test_simulator_jipda.py`for example usage.
 
 #### COLAV
 The `colav_interface.py` provides an interface for arbitrary `COLAV` planning algorithms and hierarchys within. See the file for examples/inspiration on how to wrap your own COLAV-planner to make it adhere to the interface. Alternatively, you can provide your own COLAV system through the `ownship_colav_system` input to the simulator `run(.)` function. In any case, the COLAV algorithm should adhere to the `ICOLAV` interface (see `colav_interface.py`). This enables the usage of both internally developed COLAV planners in addition to third-party ones.
