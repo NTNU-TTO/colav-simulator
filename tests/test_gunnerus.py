@@ -2,6 +2,11 @@
 Test file used for tuning a control system for the Gunnerus ship model.
 """
 
+from pathlib import Path
+
+import numpy as np
+from matplotlib import pyplot as plt
+
 import colav_simulator.common.map_functions as mapf
 import colav_simulator.common.math_functions as mf
 import colav_simulator.common.plotters as plotters
@@ -12,10 +17,8 @@ import colav_simulator.core.sensing as sensorss
 import colav_simulator.core.ship as ship
 import colav_simulator.core.stochasticity as stochasticity
 import colav_simulator.core.tracking.trackers as trackers
-import numpy as np
 from colav_simulator.scenario_config import OwnshipPositionGenerationMethod
 from colav_simulator.scenario_generator import ScenarioGenerator
-from matplotlib import pyplot as plt
 
 legend_size = 10  # legend size
 fig_size = [25, 13]  # figure1 size in cm
@@ -29,11 +32,18 @@ def test_gunnerus() -> None:
     utm_zone = 33
     map_size = [2000.0, 2000.0]
     map_origin_enu = [-35544.0, 6579000.0]
-    map_data_files = ["Rogaland_utm33.gdb"]
+    map_data_files = [
+        str(Path.home() / "enc_data" / "Rogaland_utm33.gdb")
+    ]  # You need to create this folder and put a downloaded Rogaland .gdb file in it. See the README.md file for more information.
 
     # Put new_data to True to load map data in ENC if it is not already loaded
     scenario_generator = ScenarioGenerator(
-        init_enc=True, new_data=True, utm_zone=utm_zone, size=map_size, origin=map_origin_enu, files=map_data_files
+        init_enc=True,
+        new_data=True,
+        utm_zone=utm_zone,
+        size=map_size,
+        origin=map_origin_enu,
+        files=map_data_files,
     )
 
     origin = scenario_generator.enc_origin
@@ -97,15 +107,24 @@ def test_gunnerus() -> None:
         enc=enc, safe_sea_cdt=safe_sea_cdt, safe_sea_cdt_weights=safe_sea_cdt_weights
     )
     scenario_generator.behavior_generator.setup_ship(
-        rng=rng, ship_obj=ownship, replan=True, simulation_timespan=horizon, show_plots=True
+        rng=rng,
+        ship_obj=ownship,
+        replan=True,
+        simulation_timespan=horizon,
+        show_plots=True,
     )
 
     n_wps = 5
     waypoints, _ = scenario_generator.behavior_generator.generate_random_waypoints(
-        rng, x=csog_state[0], y=csog_state[1], psi=csog_state[3], draft=ownship.draft, n_wps=n_wps
+        rng,
+        x=csog_state[0],
+        y=csog_state[1],
+        psi=csog_state[3],
+        draft=ownship.draft,
+        n_wps=n_wps,
     )
-    speed_plan = 4.0 * np.ones(
-        waypoints.shape[1]
+    speed_plan = (
+        4.0 * np.ones(waypoints.shape[1])
     )  # = scenario_generator.generate_random_speed_plan(U=5.0, n_wps=waypoints.shape[1])
     ownship.set_nominal_plan(waypoints=waypoints, speed_plan=speed_plan)
 
@@ -128,12 +147,17 @@ def test_gunnerus() -> None:
             disturbances[3, k] = disturbance_data.currents["direction"]
         ownship.plan(time[k], dt, [], None, w=disturbance_data)
         # ownship.set_references(np.array([0.0, 0.0, csog_state[3] + np.pi, speed_plan[0], 0.0, 0.0, 0.0, 0.0, 0.0]))
-        trajectory[:, k], tau[:, k], refs[:, k] = ownship.forward(dt, w=disturbance_data)
+        trajectory[:, k], tau[:, k], refs[:, k] = ownship.forward(
+            dt, w=disturbance_data
+        )
         disturbance.update(time[k], dt)
 
     # Plots
     scenario_generator.enc.start_display()
-    if disturbance_data.currents is not None and disturbance_data.currents["speed"] > 0.0:
+    if (
+        disturbance_data.currents is not None
+        and disturbance_data.currents["speed"] > 0.0
+    ):
         plotters.plot_disturbance(
             magnitude=70.0,
             direction=disturbance_data.currents["direction"],
@@ -169,20 +193,36 @@ def test_gunnerus() -> None:
     plotters.plot_trajectory(trajectory, scenario_generator.enc, "black")
     for k in range(0, n_samples, 40):
         ship_poly = mapf.create_ship_polygon(
-            trajectory[0, k], trajectory[1, k], trajectory[2, k], ownship.length, ownship.width
+            trajectory[0, k],
+            trajectory[1, k],
+            trajectory[2, k],
+            ownship.length,
+            ownship.width,
         )
         scenario_generator.enc.draw_polygon(ship_poly, "magenta", fill=True)
 
     # States
-    fig = plt.figure(figsize=(mf.cm2inch(fig_size[0]), mf.cm2inch(fig_size[1])), dpi=dpi_value)
+    fig = plt.figure(
+        figsize=(mf.cm2inch(fig_size[0]), mf.cm2inch(fig_size[1])), dpi=dpi_value
+    )
     axs = fig.subplot_mosaic(
         [
             ["xy", "chi", "r"],
             ["U", "u", "v"],
         ]
     )
-    axs["xy"].plot(waypoints[1, :] - origin[1], waypoints[0, :] - origin[0], "rx", label="Waypoints")
-    axs["xy"].plot(trajectory[1, :] - origin[1], trajectory[0, :] - origin[0], "k", label="Trajectory")
+    axs["xy"].plot(
+        waypoints[1, :] - origin[1],
+        waypoints[0, :] - origin[0],
+        "rx",
+        label="Waypoints",
+    )
+    axs["xy"].plot(
+        trajectory[1, :] - origin[1],
+        trajectory[0, :] - origin[0],
+        "k",
+        label="Trajectory",
+    )
     axs["xy"].set_xlabel("East (m)")
     axs["xy"].set_ylabel("North (m)")
     axs["xy"].set_aspect("equal")
@@ -205,15 +245,32 @@ def test_gunnerus() -> None:
 
     # heading_error = mf.wrap_angle_diff_to_pmpi(refs[2, :], trajectory[2, :])
     crab = np.arctan2(trajectory[4, :], trajectory[3, :])
-    axs["chi"].plot(time, np.rad2deg(mf.wrap_angle_to_pmpi(refs[2, :])), "r--", label="Course reference")
-    axs["chi"].plot(time, np.rad2deg(mf.wrap_angle_to_pmpi(trajectory[2, :] + crab)), "k", label="Course")
+    axs["chi"].plot(
+        time,
+        np.rad2deg(mf.wrap_angle_to_pmpi(refs[2, :])),
+        "r--",
+        label="Course reference",
+    )
+    axs["chi"].plot(
+        time,
+        np.rad2deg(mf.wrap_angle_to_pmpi(trajectory[2, :] + crab)),
+        "k",
+        label="Course",
+    )
     axs["chi"].set_xlabel("Time (s)")
     axs["chi"].set_ylabel("Course (deg)")
     axs["chi"].grid()
     axs["chi"].legend()
 
-    axs["r"].plot(time, np.rad2deg(mf.wrap_angle_to_pmpi(refs[5, :])), "r--", label="Yaw rate reference")
-    axs["r"].plot(time, np.rad2deg(mf.wrap_angle_to_pmpi(trajectory[5])), "k", label="Yaw rate")
+    axs["r"].plot(
+        time,
+        np.rad2deg(mf.wrap_angle_to_pmpi(refs[5, :])),
+        "r--",
+        label="Yaw rate reference",
+    )
+    axs["r"].plot(
+        time, np.rad2deg(mf.wrap_angle_to_pmpi(trajectory[5])), "k", label="Yaw rate"
+    )
     axs["r"].set_xlabel("Time (s)")
     axs["r"].set_ylabel("Angular rate rate (deg/s)")
     axs["r"].grid()
@@ -229,8 +286,12 @@ def test_gunnerus() -> None:
     axs["U"].legend()
 
     # Disturbances
-    fig = plt.figure(figsize=(mf.cm2inch(fig_size[0]), mf.cm2inch(fig_size[1])), dpi=dpi_value)
-    axs = fig.subplot_mosaic([["wind_speed", "wind_direction"], ["current_speed", "current_direction"]])
+    fig = plt.figure(
+        figsize=(mf.cm2inch(fig_size[0]), mf.cm2inch(fig_size[1])), dpi=dpi_value
+    )
+    axs = fig.subplot_mosaic(
+        [["wind_speed", "wind_direction"], ["current_speed", "current_direction"]]
+    )
 
     axs["wind_speed"].plot(time, disturbances[0, :], "k", label="Wind speed")
     axs["wind_speed"].set_xlabel("Time (s)")
@@ -238,7 +299,9 @@ def test_gunnerus() -> None:
     axs["wind_speed"].grid()
     axs["wind_speed"].legend()
 
-    axs["wind_direction"].plot(time, np.rad2deg(disturbances[1, :]), "k", label="Wind direction")
+    axs["wind_direction"].plot(
+        time, np.rad2deg(disturbances[1, :]), "k", label="Wind direction"
+    )
     axs["wind_direction"].set_xlabel("Time (s)")
     axs["wind_direction"].set_ylabel("Direction (deg)")
     axs["wind_direction"].grid()
@@ -250,7 +313,9 @@ def test_gunnerus() -> None:
     axs["current_speed"].grid()
     axs["current_speed"].legend()
 
-    axs["current_direction"].plot(time, np.rad2deg(disturbances[3, :]), "k", label="Current direction")
+    axs["current_direction"].plot(
+        time, np.rad2deg(disturbances[3, :]), "k", label="Current direction"
+    )
     axs["current_direction"].set_xlabel("Time (s)")
     axs["current_direction"].set_ylabel("Direction (deg)")
     axs["current_direction"].grid()
@@ -258,7 +323,9 @@ def test_gunnerus() -> None:
 
     # Inputs
     if n_u == 3:
-        fig = plt.figure(figsize=(mf.cm2inch(fig_size[0]), mf.cm2inch(fig_size[1])), dpi=dpi_value)
+        fig = plt.figure(
+            figsize=(mf.cm2inch(fig_size[0]), mf.cm2inch(fig_size[1])), dpi=dpi_value
+        )
         axs = fig.subplot_mosaic(
             [
                 ["X"],
