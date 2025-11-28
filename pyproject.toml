@@ -42,6 +42,14 @@ dependencies = [
     "tqdm>=4.67.1",
 ]
 
+[dependency-groups]
+dev = [
+    "pytest>=9.0.1",
+]
+optional = [
+    "rrt-star-lib>=1.0.0",
+]
+
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
@@ -59,10 +67,4 @@ only-include = ["colav_simulator"]
 [tool.uv.sources]
 seacharts = { git = "https://github.com/trymte/seacharts.git", rev = "6818e8abf845cfa0dfc6038c11a670da988ad531" }
 vimmjipda = { git = "https://github.com/ntnu-itk-autonomous-ship-lab/vimmjipda.git", rev = "5954e040cb04b3d909301bf53d35c6357ab3b693" }
-
-[dependency-groups]
-dev = [
-    "pytest>=9.0.1",
-]
-# rrt-rs = { git = "https://github.com/ntnu-itk-autonomous-ship-lab/rrt-rs.git", rev = "main" }
-
+rrt-star-lib = { git = "https://github.com/ntnu-itk-autonomous-ship-lab/rrt-rs.git", rev = "c212eeaa7479bc61f2aa9f25dc19719de04ade20" }
