@@ -1,6 +1,11 @@
 """
-    Test module for the Ship class. Use it to test the ship's behavior in a scenario, and/or tune your specific guidance algorithm + controller.
+Test module for the Ship class. Use it to test the ship's behavior in a scenario, and/or tune your specific guidance algorithm + controller.
 """
+
+from pathlib import Path
+
+import numpy as np
+from matplotlib import pyplot as plt
 
 import colav_simulator.common.map_functions as mapf
 import colav_simulator.common.math_functions as mf
@@ -12,14 +17,11 @@ import colav_simulator.core.sensing as sensorss
 import colav_simulator.core.ship as ship
 import colav_simulator.core.stochasticity as stochasticity
 import colav_simulator.core.tracking.trackers as trackers
-import numpy as np
 from colav_simulator.scenario_config import OwnshipPositionGenerationMethod
 from colav_simulator.scenario_generator import ScenarioGenerator
-from matplotlib import pyplot as plt
 
 
 def test_ship() -> None:
-    legend_size = 10  # legend size
     fig_size = [25, 13]  # figure1 size in cm
     dpi_value = 150  # figure dpi value
     horizon = 150.0
@@ -28,7 +30,9 @@ def test_ship() -> None:
     utm_zone = 33
     map_size = [1400.0, 1500.0]
     map_orig = np.array([6573700.0, -31924.0])
-    map_data_files = ["Rogaland_utm33.gdb"]
+    map_data_files = [
+        str(Path.home() / "enc_data" / "Rogaland_utm33.gdb")
+    ]  # You need to create this folder and put a downloaded Rogaland .gdb file in it. See the README.md file for more information.
 
     # Put new_data to True to load map data in ENC if it is not already loaded
     scenario_generator = ScenarioGenerator(
@@ -105,15 +109,24 @@ def test_ship() -> None:
         enc=enc, safe_sea_cdt=safe_sea_cdt, safe_sea_cdt_weights=safe_sea_cdt_weights
     )
     scenario_generator.behavior_generator.setup_ship(
-        rng=rng, ship_obj=ownship, replan=True, simulation_timespan=horizon, show_plots=True
+        rng=rng,
+        ship_obj=ownship,
+        replan=True,
+        simulation_timespan=horizon,
+        show_plots=True,
     )
 
     n_wps = 4
     waypoints, _ = scenario_generator.behavior_generator.generate_random_waypoints(
-        rng, x=csog_state[0], y=csog_state[1], psi=csog_state[3], draft=ownship.draft, n_wps=n_wps
+        rng,
+        x=csog_state[0],
+        y=csog_state[1],
+        psi=csog_state[3],
+        draft=ownship.draft,
+        n_wps=n_wps,
     )
-    speed_plan = 4.0 * np.ones(
-        waypoints.shape[1]
+    speed_plan = (
+        4.0 * np.ones(waypoints.shape[1])
     )  # = scenario_generator.generate_random_speed_plan(U=5.0, n_wps=waypoints.shape[1])
     ownship.set_nominal_plan(waypoints=waypoints, speed_plan=speed_plan)
 
@@ -135,16 +148,16 @@ def test_ship() -> None:
     )
     disturbance_config.wind = stochasticity.GaussMarkovDisturbanceParams(
         constant=False,
-        initial_speed=6.185481173407966,
+        initial_speed=2.185481173407966,
         initial_direction=171.7304503635763,
-        speed_range=(0.0, 7.0),
+        speed_range=(0.0, 4.0),
         direction_range=(-3.141592653589793, 3.141592653589793),
         mu_speed=0.0001,
         mu_direction=0.0005,
         sigma_speed=0.005,
         sigma_direction=0.005,
         add_impulse_noise=False,
-        speed_impulses=[1.0, 2.5, 5.0],
+        speed_impulses=[1.0, 2.5, 2.0],
         direction_impulses=np.array([-1.571, -0.785, 0.0, 0.785, 1.571, 2.094, 3.142]),
         impulse_times=[131.0],
     )
@@ -388,8 +401,12 @@ def test_ship() -> None:
             chi_ref = traj[2, ref_counter]
             U_ref = traj[3, ref_counter]
 
-        ownship.set_references(np.array([0.0, 0.0, chi_ref, U_ref, 0.0, 0.0, 0.0, 0.0, 0.0]))
-        trajectory[:, k], tau[:, k], refs[:, k] = ownship.forward(dt, w=disturbance_data)
+        ownship.set_references(
+            np.array([0.0, 0.0, chi_ref, U_ref, 0.0, 0.0, 0.0, 0.0, 0.0])
+        )
+        trajectory[:, k], tau[:, k], refs[:, k] = ownship.forward(
+            dt, w=disturbance_data
+        )
         disturbance.update(time[k], dt)
 
     # Plots
@@ -429,20 +446,33 @@ def test_ship() -> None:
     plotters.plot_trajectory(trajectory, scenario_generator.enc, "black")
     for k in range(0, n_samples, 40):
         ship_poly = mapf.create_ship_polygon(
-            trajectory[0, k], trajectory[1, k], trajectory[2, k], ownship.length, ownship.width
+            trajectory[0, k],
+            trajectory[1, k],
+            trajectory[2, k],
+            ownship.length,
+            ownship.width,
         )
         scenario_generator.enc.draw_polygon(ship_poly, "magenta", fill=True)
 
     # States
-    fig = plt.figure(figsize=(mf.cm2inch(fig_size[0]), mf.cm2inch(fig_size[1])), dpi=dpi_value)
+    fig = plt.figure(
+        figsize=(mf.cm2inch(fig_size[0]), mf.cm2inch(fig_size[1])), dpi=dpi_value
+    )
     axs = fig.subplot_mosaic(
         [
             ["xy", "chi", "r"],
             ["U", "u", "v"],
         ]
     )
-    axs["xy"].plot(traj[1, :] - origin[1], traj[0, :] - origin[0], "rx", label="Waypoints")
-    axs["xy"].plot(trajectory[1, :] - origin[1], trajectory[0, :] - origin[0], "k", label="Trajectory")
+    axs["xy"].plot(
+        traj[1, :] - origin[1], traj[0, :] - origin[0], "rx", label="Waypoints"
+    )
+    axs["xy"].plot(
+        trajectory[1, :] - origin[1],
+        trajectory[0, :] - origin[0],
+        "k",
+        label="Trajectory",
+    )
     axs["xy"].set_xlabel("East (m)")
     axs["xy"].set_ylabel("North (m)")
     axs["xy"].grid()
@@ -464,15 +494,32 @@ def test_ship() -> None:
 
     # heading_error = mf.wrap_angle_diff_to_pmpi(refs[2, :], trajectory[2, :])
     crab = np.arctan2(trajectory[4, :], trajectory[3, :])
-    axs["chi"].plot(time, np.rad2deg(mf.wrap_angle_to_pmpi(refs[2, :])), "r--", label="Course reference")
-    axs["chi"].plot(time, np.rad2deg(mf.wrap_angle_to_pmpi(trajectory[2, :] + crab)), "k", label="Course")
+    axs["chi"].plot(
+        time,
+        np.rad2deg(mf.wrap_angle_to_pmpi(refs[2, :])),
+        "r--",
+        label="Course reference",
+    )
+    axs["chi"].plot(
+        time,
+        np.rad2deg(mf.wrap_angle_to_pmpi(trajectory[2, :] + crab)),
+        "k",
+        label="Course",
+    )
     axs["chi"].set_xlabel("Time (s)")
     axs["chi"].set_ylabel("Course (deg)")
     axs["chi"].grid()
     axs["chi"].legend()
 
-    axs["r"].plot(time, np.rad2deg(mf.wrap_angle_to_pmpi(refs[5, :])), "r--", label="Yaw rate reference")
-    axs["r"].plot(time, np.rad2deg(mf.wrap_angle_to_pmpi(trajectory[5])), "k", label="Yaw rate")
+    axs["r"].plot(
+        time,
+        np.rad2deg(mf.wrap_angle_to_pmpi(refs[5, :])),
+        "r--",
+        label="Yaw rate reference",
+    )
+    axs["r"].plot(
+        time, np.rad2deg(mf.wrap_angle_to_pmpi(trajectory[5])), "k", label="Yaw rate"
+    )
     axs["r"].set_xlabel("Time (s)")
     axs["r"].set_ylabel("Angular rate rate (deg/s)")
     axs["r"].grid()
@@ -488,8 +535,12 @@ def test_ship() -> None:
     axs["U"].legend()
 
     # Disturbances
-    fig = plt.figure(figsize=(mf.cm2inch(fig_size[0]), mf.cm2inch(fig_size[1])), dpi=dpi_value)
-    axs = fig.subplot_mosaic([["wind_speed", "wind_direction"], ["current_speed", "current_direction"]])
+    fig = plt.figure(
+        figsize=(mf.cm2inch(fig_size[0]), mf.cm2inch(fig_size[1])), dpi=dpi_value
+    )
+    axs = fig.subplot_mosaic(
+        [["wind_speed", "wind_direction"], ["current_speed", "current_direction"]]
+    )
 
     axs["wind_speed"].plot(time, disturbances[0, :], "k", label="Wind speed")
     axs["wind_speed"].set_xlabel("Time (s)")
@@ -497,7 +548,9 @@ def test_ship() -> None:
     axs["wind_speed"].grid()
     axs["wind_speed"].legend()
 
-    axs["wind_direction"].plot(time, np.rad2deg(disturbances[1, :]), "k", label="Wind direction")
+    axs["wind_direction"].plot(
+        time, np.rad2deg(disturbances[1, :]), "k", label="Wind direction"
+    )
     axs["wind_direction"].set_xlabel("Time (s)")
     axs["wind_direction"].set_ylabel("Direction (deg)")
     axs["wind_direction"].grid()
@@ -509,7 +562,9 @@ def test_ship() -> None:
     axs["current_speed"].grid()
     axs["current_speed"].legend()
 
-    axs["current_direction"].plot(time, np.rad2deg(disturbances[3, :]), "k", label="Current direction")
+    axs["current_direction"].plot(
+        time, np.rad2deg(disturbances[3, :]), "k", label="Current direction"
+    )
     axs["current_direction"].set_xlabel("Time (s)")
     axs["current_direction"].set_ylabel("Direction (deg)")
     axs["current_direction"].grid()
@@ -517,7 +572,9 @@ def test_ship() -> None:
 
     # Inputs
     if n_u == 3:
-        fig = plt.figure(figsize=(mf.cm2inch(fig_size[0]), mf.cm2inch(fig_size[1])), dpi=dpi_value)
+        fig = plt.figure(
+            figsize=(mf.cm2inch(fig_size[0]), mf.cm2inch(fig_size[1])), dpi=dpi_value
+        )
         axs = fig.subplot_mosaic(
             [
                 ["X"],
