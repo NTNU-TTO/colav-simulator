@@ -57,7 +57,12 @@ only-include = ["colav_simulator"]
 "tests" = "colav_simulator/tests"
 
 [tool.uv.sources]
-seacharts = { git = "https://github.com/trymte/seacharts.git", rev = "9ca3594be99a4032a84843f9c2b7bedbc3244365" }
+seacharts = { git = "https://github.com/trymte/seacharts.git", rev = "6818e8abf845cfa0dfc6038c11a670da988ad531" }
 vimmjipda = { git = "https://github.com/ntnu-itk-autonomous-ship-lab/vimmjipda.git", rev = "5954e040cb04b3d909301bf53d35c6357ab3b693" }
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.1",
+]
 # rrt-rs = { git = "https://github.com/ntnu-itk-autonomous-ship-lab/rrt-rs.git", rev = "main" }
 
