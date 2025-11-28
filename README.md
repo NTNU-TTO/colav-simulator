@@ -29,23 +29,21 @@ Are all outlined in the `pyproject.toml` file. The git modules are the following
 
 ## Generic Install Instructions
 
-To use `seacharts` in the simulator for map visualizations and grounding hazard considerations, you should download `.gdb` files from <https://kartkatalog.geonorge.no> in UTM 32 or 33 (see <https://github.com/trymte/seacharts> for instructions), and put into the `data/external` folder in the seacharts package directory. Otherwise, the module will not find any ENC data to use:
 ```bash
-cd root_project_dir/seacharts/data
-mkdir external
+uv sync
 ```
-where `root_project_dir` is your preferred directory for storing the repositories.
+
+To use `seacharts` in the simulator for map visualizations and grounding hazard considerations, you need to download `.gdb` files from <https://kartkatalog.geonorge.no> in UTM 32 or 33 (see <https://github.com/trymte/seacharts> for instructions), and put the unzipped .gdb-files e.g. in an `enc_data/` folder of your choice. By default, the `ScenarioGenerator` will expand relative map data file paths to `$HOME/enc_data"` unless absolute.
 
 If you get troubles installing `gdal`, this might be due to:
 - The native `gdal`library not being installed, see e.g. <https://github.com/OSGeo/gdal/issues/2166>
 - It not being installed correctly. Try to install from source or fix the gdal-version (see e.g. <https://stackoverflow.com/questions/34408699/having-trouble-installing-gdal-for-python> or <https://github.com/OSGeo/gdal/issues/2827>). An issue on the topic is found on <https://github.com/trymte/seacharts/issues/4>.
 - Incompatible python and gdal package versions.
 
-Install rrt-rs using instructions at <https://github.com/ntnu-itk-autonomous-ship-lab/rrt-rs>.
-
-Create an external directory inside the seacharts package
-
-And download the .gdb files into this folder.
+To also install the rrt-star-lib at <https://github.com/ntnu-itk-autonomous-ship-lab/rrt-rs>, do
+```bash
+uv sync --group optional
+```
 
 Test the installation by running any of the files under `tests/`, e.g.
 ```bash
