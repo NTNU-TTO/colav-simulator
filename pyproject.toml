@@ -1,0 +1,56 @@
+[project]
+name = "colav-simulator"
+version = "1.0.0"
+description = "Simulator for maritime collision avoidance algorithm development and benchmarking, aswell as providing agymnasium DRL environment."
+readme = "README.md"
+authors = [
+    {name = "Trym Tengesdal", email = "tengesdal1994@gmail.com"},
+    {name = "Melih Akdag", email = ""},
+    {name = "Magne Aune", email = ""},
+    {name = "Joachim Miller", email = ""},
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+requires-python = ">=3.10,<3.12"
+dependencies = [
+    "cerberus>=1.3.8",
+    "dacite>=1.9.2",
+    "decorator>=5.2.1",
+    "geopandas>=1.1.1",
+    "geopy>=2.4.1",
+    "gymnasium>=0.28.1",
+    "matplotlib>=3.10.7",
+    "matplotlib-scalebar>=0.9.0",
+    "moviepy>=2.2.1",
+    "numpy>=1.20",
+    "opencv-python>=4.11.0.86",
+    "pandas>=2.3.3",
+    "psutil>=7.1.3",
+    "pyyaml>=6.0.3",
+    "scikit-image>=0.25.2",
+    "scipy>=1.15.3",
+    "seacharts",
+    "shapely>=2.1.2",
+    "stable-baselines3>=2.7.0",
+    "torch>=1.13",
+    "tqdm>=4.67.1",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["colav_simulator", "config", "examples", "scenarios", "tests"]
+
+[tool.uv.sources]
+seacharts = { git = "https://github.com/trymte/seacharts.git", rev = "3ed98206a9ecf05d682486a3979e08efd7941fe6" }
+vimmjipda = { git = "https://github.com/ntnu-itk-autonomous-ship-lab/vimmjipda.git", rev = "5954e040cb04b3d909301bf53d35c6357ab3b693" }
+# rrt-rs = { git = "https://github.com/ntnu-itk-autonomous-ship-lab/rrt-rs.git", rev = "main" }
+
