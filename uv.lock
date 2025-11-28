@@ -156,7 +156,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "scikit-image", specifier = ">=0.25.2" },
     { name = "scipy", specifier = ">=1.15.3" },
-    { name = "seacharts", git = "https://github.com/trymte/seacharts.git?rev=3ed98206a9ecf05d682486a3979e08efd7941fe6" },
+    { name = "seacharts", git = "https://github.com/trymte/seacharts.git?rev=9ca3594be99a4032a84843f9c2b7bedbc3244365" },
     { name = "shapely", specifier = ">=2.1.2" },
     { name = "stable-baselines3", specifier = ">=2.7.0" },
     { name = "torch", specifier = ">=1.13" },
@@ -1224,7 +1224,7 @@ wheels = [
 [[package]]
 name = "seacharts"
 version = "2.1.0"
-source = { git = "https://github.com/trymte/seacharts.git?rev=3ed98206a9ecf05d682486a3979e08efd7941fe6#3ed98206a9ecf05d682486a3979e08efd7941fe6" }
+source = { git = "https://github.com/trymte/seacharts.git?rev=9ca3594be99a4032a84843f9c2b7bedbc3244365#9ca3594be99a4032a84843f9c2b7bedbc3244365" }
 dependencies = [
     { name = "cartopy" },
     { name = "cerberus" },
