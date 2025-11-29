@@ -1,25 +1,27 @@
 """
-    controllers.py
+controllers.py
 
-    Summary:
-        Contains class definitions for various control strategies.
-        Every controller must adhere to the interface IController.
+Summary:
+    Contains class definitions for various control strategies.
+    Every controller must adhere to the interface IController.
 
-    Author: Trym Tengesdal
+Author: Trym Tengesdal
 """
 
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field
 from typing import Any, Optional, Tuple
 
+import numpy as np
+
 import colav_simulator.common.config_parsing as cp
 import colav_simulator.common.math_functions as mf
-import numpy as np
 
 
 @dataclass
 class MIMOPIDParams:
     "Parameters for a Proportional-Integral-Derivative controller."
+
     wn: np.ndarray = field(default_factory=lambda: np.diag([0.3, 0.2, 0.35]))
     zeta: np.ndarray = field(default_factory=lambda: np.diag([1.0, 1.0, 1.0]))
     eta_diff_max: np.ndarray = field(default_factory=lambda: np.zeros(3))
@@ -34,13 +36,20 @@ class MIMOPIDParams:
 @dataclass
 class SHPIDParams:
     "Parameters for a PID controller for surge, sway + heading control with feedback linearization of the mass+coriolis+damping."
+
     K_p: np.ndarray = field(default_factory=lambda: np.diag([5.0, 1.3, 1.4]))
     K_d: np.ndarray = field(default_factory=lambda: np.diag([0.0, 5.0, 15.0]))
     K_i: np.ndarray = field(default_factory=lambda: np.diag([0.25, 0.1, 0.1]))
-    z_diff_max: np.ndarray = field(default_factory=lambda: np.array([2.0, 2.0, 15.0 * np.pi / 180.0]))
+    z_diff_max: np.ndarray = field(
+        default_factory=lambda: np.array([2.0, 2.0, 15.0 * np.pi / 180.0])
+    )
     V: np.ndarray = field(
         default_factory=lambda: np.array(
-            [[0.0, 0.0, 0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 1.0, 0.0, 0.0, 0.0]]
+            [
+                [0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 1.0, 0.0],
+                [0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+            ]
         )
     )
 
@@ -79,6 +88,7 @@ class SHPIDParams:
 @dataclass
 class FLSCParams:
     "Parameters for the feedback linearizing surge-course controller."
+
     K_p_u: float = 3.0
     K_i_u: float = 0.3
     K_p_chi: float = 2.2
@@ -92,7 +102,9 @@ class FLSCParams:
     def to_dict(self):
         output = asdict(self)
         output["max_chi_error_int"] = float(np.rad2deg(output["max_chi_error_int"]))
-        output["chi_error_int_threshold"] = float(np.rad2deg(output["chi_error_int_threshold"]))
+        output["chi_error_int_threshold"] = float(
+            np.rad2deg(output["chi_error_int_threshold"])
+        )
         return output
 
 
@@ -120,7 +132,9 @@ class Config:
 
     @classmethod
     def from_dict(cls, config_dict: dict):
-        config = Config(pid=None, flsc=None, pass_through_cs=None, pass_through_inputs=None)
+        config = Config(
+            pid=None, flsc=None, pass_through_cs=None, pass_through_inputs=None
+        )
         if "pid" in config_dict:
             config.pid = MIMOPIDParams(
                 wn=np.diag(config_dict["pid"]["wn"]),
@@ -129,15 +143,21 @@ class Config:
             )
 
         if "flsc" in config_dict:
-            config.flsc = cp.convert_settings_dict_to_dataclass(FLSCParams, config_dict["flsc"])
+            config.flsc = cp.convert_settings_dict_to_dataclass(
+                FLSCParams, config_dict["flsc"]
+            )
             config.flsc.max_chi_error_int = np.deg2rad(config.flsc.max_chi_error_int)
-            config.flsc.chi_error_int_threshold = np.deg2rad(config.flsc.chi_error_int_threshold)
+            config.flsc.chi_error_int_threshold = np.deg2rad(
+                config.flsc.chi_error_int_threshold
+            )
 
         if "pass_through_cs" in config_dict:
             config.pass_through_cs = True
 
         if "pass_through_inputs" in config_dict:
-            config.pass_through_inputs = PassThroughInputsParams(**config_dict["pass_through_inputs"])
+            config.pass_through_inputs = PassThroughInputsParams(
+                **config_dict["pass_through_inputs"]
+            )
 
         return config
 
@@ -184,7 +204,9 @@ class IController(ABC):
 
 class ControllerBuilder:
     @classmethod
-    def construct_controller(cls, model_params: Any, config: Optional[Config] = None) -> IController:
+    def construct_controller(
+        cls, model_params: Any, config: Optional[Config] = None
+    ) -> IController:
         """Builds a controller from the configuration
 
         Args:
@@ -243,7 +265,9 @@ class PassThroughInputs(IController):
 
     Otherwise, the mapping is [X, Y, N] -> [X, Y, N]."""
 
-    def __init__(self, model_params, params: Optional[PassThroughInputsParams] = None) -> None:
+    def __init__(
+        self, model_params, params: Optional[PassThroughInputsParams] = None
+    ) -> None:
         self._model_params = model_params
         if params is None:
             self.params = PassThroughInputsParams()
@@ -333,7 +357,9 @@ class MIMOPID(IController):
         eta_dot = R_n_b @ nu
 
         Mmtrx = self._model_params.M_rb + self._model_params.M_a
-        Dmtrx = mf.Dmtrx(self._model_params.D_l, self._model_params.D_q, self._model_params.D_c, nu)
+        Dmtrx = mf.Dmtrx(
+            self._model_params.D_l, self._model_params.D_q, self._model_params.D_c, nu
+        )
 
         K_p, K_d, K_i = pole_placement(Mmtrx, Dmtrx, self._params.wn, self._params.zeta)
 
@@ -344,7 +370,9 @@ class MIMOPID(IController):
         eta_dot_d = refs[3:6]
         eta_dot_diff = eta_dot - eta_dot_d
 
-        self._eta_diff_int = mf.sat(self._eta_diff_int + eta_diff * dt, np.zeros(3), self._params.eta_diff_max)
+        self._eta_diff_int = mf.sat(
+            self._eta_diff_int + eta_diff * dt, np.zeros(3), self._params.eta_diff_max
+        )
 
         tau = -K_p @ eta_diff - K_d @ eta_dot_diff - K_i @ self._eta_diff_int
         tau = R_n_b.T @ tau
@@ -372,7 +400,7 @@ def pole_placement(
 @dataclass
 class FLSC(IController):
     """Implements a feedback-linearizing surge-course (FLSC) controller for a single thruster+rudder
-    (NOT true in practice, as the vessel has an outboard engine) Telemetron vessel using
+    (NOT true in practice, as the vessel has an outboard engine) Viknes vessel using
 
     Fx = (C(nu) * nu)[0] + (D(nu) * nu)[0] + M[0, 0] * (K_p,u * (u_d - u) + int_0^t K_i,u * (u_d - u))
     Fy = (M[2, 2] / l_r) * (K_p,chi * (chi_d - chi) + K_d,chi * (r_d - r) + int_0^t K_i,chi * (chi_d - chi))
@@ -387,7 +415,10 @@ class FLSC(IController):
     """
 
     def __init__(
-        self, model_params, params: Optional[FLSCParams] = None, enable_separate_low_speed_control: bool = False
+        self,
+        model_params,
+        params: Optional[FLSCParams] = None,
+        enable_separate_low_speed_control: bool = False,
     ) -> None:
         self._model_params = model_params
         if params is not None:
@@ -397,7 +428,7 @@ class FLSC(IController):
 
         self._low_speed_ctrl_params = None
         if enable_separate_low_speed_control:
-            # Tuned for the telemetron model with disturbances considered
+            # Tuned for the viknes model with disturbances considered
             self._low_speed_ctrl_params = FLSCParams(
                 K_p_u=3.0,
                 K_i_u=0.2,
@@ -422,7 +453,9 @@ class FLSC(IController):
         self._chi_prev = 0.0
         self._t = 0.0
 
-    def update_integrators(self, speed_error: float, chi_error: float, dt: float) -> None:
+    def update_integrators(
+        self, speed_error: float, chi_error: float, dt: float
+    ) -> None:
         """Updates the integrators for the FLSC controller.
 
         Args:
@@ -443,10 +476,14 @@ class FLSC(IController):
         #     self._chi_error_int = 0.0
 
         self._speed_error_int = mf.sat(
-            self._speed_error_int, -self._params.max_speed_error_int, self._params.max_speed_error_int
+            self._speed_error_int,
+            -self._params.max_speed_error_int,
+            self._params.max_speed_error_int,
         )
         self._chi_error_int = mf.sat(
-            self._chi_error_int, -self._params.max_chi_error_int, self._params.max_chi_error_int
+            self._chi_error_int,
+            -self._params.max_chi_error_int,
+            self._params.max_chi_error_int,
         )
 
     def compute_inputs(self, refs: np.ndarray, xs: np.ndarray, dt: float) -> np.ndarray:
@@ -478,7 +515,9 @@ class FLSC(IController):
 
         psi = mf.wrap_angle_to_pmpi(eta[2])
         speed = np.sqrt(nu[0] ** 2 + nu[1] ** 2)
-        crab = np.arctan2(nu[1], nu[0])  # if speed > 1.5 else 0.0  # to avoid oscillations when speed is low
+        crab = np.arctan2(
+            nu[1], nu[0]
+        )  # if speed > 1.5 else 0.0  # to avoid oscillations when speed is low
         chi = mf.wrap_angle_to_pmpi(psi + crab)
         chi_unwrapped = mf.unwrap_angle(self._chi_prev, chi)
 
@@ -489,9 +528,17 @@ class FLSC(IController):
         Cvv = np.zeros(3)
         Dvv = np.zeros(3)
         Mmtrx = self._model_params.M_rb + self._model_params.M_a
-        if self._model_params.name == "Telemetron":
+        if self._model_params.name == "Viknes":
             Cvv = mf.Cmtrx(Mmtrx, nu) @ nu
-            Dvv = mf.Dmtrx(self._model_params.D_l, self._model_params.D_q, self._model_params.D_c, nu) @ nu
+            Dvv = (
+                mf.Dmtrx(
+                    self._model_params.D_l,
+                    self._model_params.D_q,
+                    self._model_params.D_c,
+                    nu,
+                )
+                @ nu
+            )
             l_r = self._model_params.l_r
         elif self._model_params.name == "R/V Gunnerus":
             C_RB = mf.coriolis_matrix_rigid_body(self._model_params.M_rb, nu)
@@ -521,9 +568,16 @@ class FLSC(IController):
         #         f"speed error: {speed_error} | chi error: {180.0 * chi_error_unwrapped / np.pi} | speed error int: {self._speed_error_int} | chi error int: {180.0 * self._chi_error_int / np.pi}"
         #     )
 
-        tau_X = Cvv[0] + Dvv[0] + Mmtrx[0, 0] * (params.K_p_u * speed_error + params.K_i_u * self._speed_error_int)
+        tau_X = (
+            Cvv[0]
+            + Dvv[0]
+            + Mmtrx[0, 0]
+            * (params.K_p_u * speed_error + params.K_i_u * self._speed_error_int)
+        )
         tau_N = (Mmtrx[2, 2] / l_r) * (
-            params.K_p_chi * chi_error + params.K_d_chi * (r_d - nu[2]) + params.K_i_chi * self._chi_error_int
+            params.K_p_chi * chi_error
+            + params.K_d_chi * (r_d - nu[2])
+            + params.K_i_chi * self._chi_error_int
         )
 
         tau = np.array([float(tau_X), 0.0, float(l_r * tau_N)])

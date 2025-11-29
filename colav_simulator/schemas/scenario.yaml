@@ -598,7 +598,7 @@ ship_list:
         schema:
           csog:
             type: dict
-            excludes: [telemetron, cybership2]
+            excludes: [viknes, cybership2]
             schema:
               draft:
                 required: True
@@ -631,7 +631,7 @@ ship_list:
                 required: False
                 type: string
 
-          telemetron:
+          viknes:
             type: string
             empty: True
             excludes: [csog, cybership2]
@@ -639,9 +639,9 @@ ship_list:
           cybership2:
             type: string
             empty: True
-            excludes: [csog, telemetron]
+            excludes: [csog, viknes]
 
           rvgunnerus:
             type: string
             empty: True
-            excludes: [csog, telemetron, cybership2]
+            excludes: [csog, viknes, cybership2]

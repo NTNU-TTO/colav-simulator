@@ -86,7 +86,7 @@ ship_list:
         max_chi_error_int: 90.0
         chi_error_int_threshold: 20.0
     model:
-      telemetron: ''
+      viknes: ''
   - csog_state: [7052000.0, 282000.0, 10.0, 270.0]
     waypoints: [[7052000.0, 7052000.0], [282000.0, 270000.0]]
     speed_plan: [10.0, 10.0]
@@ -132,4 +132,4 @@ ship_list:
         max_chi_error_int: 90.0
         chi_error_int_threshold: 20.0
     model:
-      telemetron: ''
+      viknes: ''
