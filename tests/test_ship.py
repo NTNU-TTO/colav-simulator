@@ -45,7 +45,7 @@ def test_ship() -> None:
     )
     origin = scenario_generator.enc_origin
 
-    model = models.Telemetron()
+    model = models.Viknes()
     ctrl_params = controllers.FLSCParams(
         K_p_u=3.0,
         K_i_u=0.3,

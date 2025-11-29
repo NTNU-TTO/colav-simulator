@@ -86,7 +86,7 @@ ship_list:
         max_chi_error_int: 90.0
         chi_error_int_threshold: 20.0
     model:
-      telemetron: ''
+      viknes: ''
   - csog_state: [7045650.0, 272550.0, 10.0, 45.0]
     waypoints: [[7045650.0, 7057500.0], [272550.0, 277400.0]]
     speed_plan: [10.0, 10.0]
@@ -162,7 +162,7 @@ ship_list:
         max_chi_error_int: 90.0
         chi_error_int_threshold: 20.0
     model:
-      telemetron: ''
+      viknes: ''
   - csog_state: [7045800.0, 277700.0, 10.0, 342.0]
     waypoints: [[7045800.0, 7057500.0], [277700.0, 272300.0]]
     speed_plan: [10.0, 10.0]
@@ -238,7 +238,7 @@ ship_list:
         max_chi_error_int: 90.0
         chi_error_int_threshold: 20.0
     model:
-      telemetron: ''
+      viknes: ''
   - csog_state: [7055500.0, 279500.0, 10.0, 225.0]
     waypoints: [[7055500.0, 7047500.0], [279500.0, 270500.0]]
     speed_plan: [10.0, 10.0]
@@ -314,4 +314,4 @@ ship_list:
         max_chi_error_int: 90.0
         chi_error_int_threshold: 20.0
     model:
-      telemetron: ''
+      viknes: ''
