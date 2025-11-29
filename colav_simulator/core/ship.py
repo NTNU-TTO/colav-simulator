@@ -1,17 +1,21 @@
 """
-    ship.py
+ship.py
 
-    Summary:
-        Contains class definition for the Ship, representing an agent in the simulator.
-        Every ship class must adhere to the interface
-        IShip and must be built by a ShipBuilder.
+Summary:
+    Contains class definition for the Ship, representing an agent in the simulator.
+    Every ship class must adhere to the interface
+    IShip and must be built by a ShipBuilder.
 
-    Author: Trym Tengesdal
+Author: Trym Tengesdal
 """
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, List, Optional, Tuple
+
+import matplotlib.pyplot as plt
+import numpy as np
+import seacharts.enc as senc
 
 import colav_simulator.common.math_functions as mf
 import colav_simulator.common.miscellaneous_helper_methods as mhm
@@ -23,9 +27,6 @@ import colav_simulator.core.models as models
 import colav_simulator.core.sensing as sensing
 import colav_simulator.core.stochasticity as stochasticity
 import colav_simulator.core.tracking.trackers as trackers
-import matplotlib.pyplot as plt
-import numpy as np
-import seacharts.enc as senc
 from colav_simulator.core.integrators import erk4_integration_step
 
 
@@ -34,18 +35,24 @@ class Config:
     """Configuration class for managing ship parameters."""
 
     colav: Optional[ci.Config] = None
-    guidance: Optional[guidances.Config] = field(default_factory=lambda: guidances.Config())
+    guidance: Optional[guidances.Config] = field(
+        default_factory=lambda: guidances.Config()
+    )
     model: models.Config = field(default_factory=lambda: models.Config())
     controller: controllers.Config = field(default_factory=lambda: controllers.Config())
     sensors: sensing.Config = field(default_factory=lambda: sensing.Config())
     tracker: trackers.Config = field(default_factory=lambda: trackers.Config())
-    mmsi: int = (
-        -1
-    )  # MMSI number of the ship, if configured equal to the MMSI of a ship in AIS data, the ship will be initialized with the data from the AIS data.
+    mmsi: int = -1  # MMSI number of the ship, if configured equal to the MMSI of a ship in AIS data, the ship will be initialized with the data from the AIS data.
     id: int = -1  # Ship identifier
-    t_start: Optional[float] = None  # Determines when the ship should start in the simulation
-    t_end: Optional[float] = None  # Determines when the ship ends its part in the simulation
-    csog_state: Optional[np.ndarray] = None  # In format [x[north], y[east], SOG [m/s], COG[deg]], similar to AIS data.
+    t_start: Optional[float] = (
+        None  # Determines when the ship should start in the simulation
+    )
+    t_end: Optional[float] = (
+        None  # Determines when the ship ends its part in the simulation
+    )
+    csog_state: Optional[np.ndarray] = (
+        None  # In format [x[north], y[east], SOG [m/s], COG[deg]], similar to AIS data.
+    )
     goal_csog_state: Optional[np.ndarray] = (
         None  # In format [x[north], y[east], SOG [m/s], COG[deg]], similar to AIS data.
     )
@@ -114,7 +121,9 @@ class Config:
 
         if self.goal_csog_state is not None:
             config_dict["goal_csog_state"] = self.goal_csog_state.tolist()
-            config_dict["goal_csog_state"][3] = float(np.rad2deg(self.goal_csog_state[3]))
+            config_dict["goal_csog_state"][3] = float(
+                np.rad2deg(self.goal_csog_state[3])
+            )
 
         if self.waypoints is not None:
             config_dict["waypoints"] = self.waypoints.tolist()
@@ -151,7 +160,12 @@ class ShipBuilder:
     def construct_ship(
         cls, config: Optional[Config] = None
     ) -> Tuple[
-        models.IModel, controllers.IController, guidances.IGuidance | None, list, trackers.ITracker, ci.ICOLAV | None
+        models.IModel,
+        controllers.IController,
+        guidances.IGuidance | None,
+        list,
+        trackers.ITracker,
+        ci.ICOLAV | None,
     ]:
         """Builds a ship from the configuration
 
@@ -187,7 +201,9 @@ class ShipBuilder:
         return ci.COLAVBuilder.construct_colav(config)
 
     @classmethod
-    def construct_tracker(cls, sensors: list, config: Optional[trackers.Config] = None) -> trackers.ITracker:
+    def construct_tracker(
+        cls, sensors: list, config: Optional[trackers.Config] = None
+    ) -> trackers.ITracker:
         return trackers.TrackerBuilder.construct_tracker(sensors, config)
 
     @classmethod
@@ -195,7 +211,9 @@ class ShipBuilder:
         return sensing.SensorSuiteBuilder.construct_sensors(config)
 
     @classmethod
-    def construct_guidance(cls, config: Optional[guidances.Config] = None) -> Optional[guidances.IGuidance]:
+    def construct_guidance(
+        cls, config: Optional[guidances.Config] = None
+    ) -> Optional[guidances.IGuidance]:
         return guidances.GuidanceBuilder.construct_guidance(config)
 
     @classmethod
@@ -230,8 +248,14 @@ class IShip(ABC):
 
     @abstractmethod
     def track_obstacles(
-        self, t: float, dt: float, true_do_states: List[Tuple[int, np.ndarray, float, float]]
-    ) -> Tuple[List[Tuple[int, np.ndarray, np.ndarray, float, float]], List[Tuple[int, np.ndarray]]]:
+        self,
+        t: float,
+        dt: float,
+        true_do_states: List[Tuple[int, np.ndarray, float, float]],
+    ) -> Tuple[
+        List[Tuple[int, np.ndarray, np.ndarray, float, float]],
+        List[Tuple[int, np.ndarray]],
+    ]:
         """Track obstacles using the sensor suite, taking the obstacle states as inputs at the current time.
 
         Args:
@@ -274,7 +298,9 @@ class IShip(ABC):
         "Set the ship identifier."
 
     @abstractmethod
-    def set_initial_state(self, csog_state: np.ndarray, t_start: Optional[float] = None) -> None:
+    def set_initial_state(
+        self, csog_state: np.ndarray, t_start: Optional[float] = None
+    ) -> None:
         """Sets the initial state of the ship based on the input kinematic state.
 
         Args:
@@ -300,7 +326,9 @@ class IShip(ABC):
         """
 
     @abstractmethod
-    def set_remote_actor_predicted_trajectory(self, predicted_trajectory: np.ndarray) -> None:
+    def set_remote_actor_predicted_trajectory(
+        self, predicted_trajectory: np.ndarray
+    ) -> None:
         "Set the predicted trajectory of the ship, if it is controlled by a remote actor. Typically used for plotting purposes."
 
     @abstractmethod
@@ -349,7 +377,9 @@ class IShip(ABC):
         "Return information about the ship in dictionary format."
 
     @abstractmethod
-    def get_do_track_information(self) -> Tuple[List[Tuple[int, np.ndarray, np.ndarray, float, float]], List[float]]:
+    def get_do_track_information(
+        self,
+    ) -> Tuple[List[Tuple[int, np.ndarray, np.ndarray, float, float]], List[float]]:
         """Returns the dynamic obstacle track information (ID, state, cov, length, width).
         Also, it returns the associated Normalized Innovation error Squared (NIS) values for
         the most recent update step for each track, and the track labels.
@@ -360,7 +390,12 @@ class IShip(ABC):
 
     @abstractmethod
     def plot_colav_results(
-        self, ax_map: plt.Axes, enc: senc.ENC, plt_handles: dict, remote_actor: bool = False, **kwargs
+        self,
+        ax_map: plt.Axes,
+        enc: senc.ENC,
+        plt_handles: dict,
+        remote_actor: bool = False,
+        **kwargs,
     ) -> dict:
         """Plot the COLAV data of the ship, if available.
 
@@ -438,13 +473,17 @@ class Ship(IShip):
         self._references: np.ndarray = np.empty(0)
         self._trajectory: np.ndarray = np.empty(0)
         self._predicted_trajectory: np.ndarray = np.empty(0)
-        self._trajectory_sample: int = (
+        self._trajectory_sample: int = -1  # Index of current trajectory sample considered in the simulation (for AIS trajectories)
+        self._first_valid_idx: int = (
             -1
-        )  # Index of current trajectory sample considered in the simulation (for AIS trajectories)
-        self._first_valid_idx: int = -1  # Index of first valid AIS message in predefined trajectory
-        self._last_valid_idx: int = -1  # Index of last valid AIS message in predefined trajectory
+        )  # Index of first valid AIS message in predefined trajectory
+        self._last_valid_idx: int = (
+            -1
+        )  # Index of last valid AIS message in predefined trajectory
         self.t_start: float = 0.0  # The time when the ship appears in the simulation
-        self.t_end: float = 1e12  # The time when the ship disappears from the simulation
+        self.t_end: float = (
+            1e12  # The time when the ship disappears from the simulation
+        )
         self._ext_colav_data: dict = {}
         (
             self._model,
@@ -520,7 +559,9 @@ class Ship(IShip):
         if self._trajectory.size > 0:
             return self._trajectory
 
-        if self._goal_state.size == 0 and (self._waypoints.size < 2 or self._speed_plan.size < 2):
+        if self._goal_state.size == 0 and (
+            self._waypoints.size < 2 or self._speed_plan.size < 2
+        ):
             raise ValueError(
                 f"Ship{self.id}: Either the goal pose must be provided, or a sufficient number of waypoints for the ship to follow!"
             )
@@ -577,17 +618,32 @@ class Ship(IShip):
         if dt <= 0.0:
             return self._state, np.empty(3), np.empty(9)
 
-        self._input = self._controller.compute_inputs(self._references[:, 0], self._state, dt)
+        self._input = self._controller.compute_inputs(
+            self._references[:, 0], self._state, dt
+        )
 
         self._state = erk4_integration_step(
-            f=self._model.dynamics, b=self._model.bounds, x=self._state, u=self._input, w=w, dt=dt
+            f=self._model.dynamics,
+            b=self._model.bounds,
+            x=self._state,
+            u=self._input,
+            w=w,
+            dt=dt,
         )
         return self._state, self._input, self._references[:, 0]
 
     def track_obstacles(
-        self, t: float, dt: float, true_do_states: List[Tuple[int, np.ndarray, float, float]]
-    ) -> Tuple[List[Tuple[int, np.ndarray, np.ndarray, float, float]], List[Tuple[int, np.ndarray]]]:
-        return self._tracker.track(t, dt, true_do_states, mhm.convert_state_to_vxvy_state(self.csog_state))
+        self,
+        t: float,
+        dt: float,
+        true_do_states: List[Tuple[int, np.ndarray, float, float]],
+    ) -> Tuple[
+        List[Tuple[int, np.ndarray, np.ndarray, float, float]],
+        List[Tuple[int, np.ndarray]],
+    ]:
+        return self._tracker.track(
+            t, dt, true_do_states, mhm.convert_state_to_vxvy_state(self.csog_state)
+        )
 
     def reset(self, seed: int | None) -> None:
         self._controller.reset()
@@ -602,17 +658,27 @@ class Ship(IShip):
             self._colav.reset()
 
     def set_id(self, identifier: int) -> None:
-        assert identifier >= 0, f"Ship{self.id}: Identifier must be a non-negative integer!"
+        assert (
+            identifier >= 0
+        ), f"Ship{self.id}: Identifier must be a non-negative integer!"
         self._id = identifier
 
-    def set_initial_state(self, csog_state: np.ndarray, t_start: Optional[float] = None) -> None:
-        assert csog_state.size == 4, f"Ship{self.id}: Initial state must be a 4D vector!"
-        self._state = np.array([csog_state[0], csog_state[1], csog_state[3], csog_state[2], 0.0, 0.0])
+    def set_initial_state(
+        self, csog_state: np.ndarray, t_start: Optional[float] = None
+    ) -> None:
+        assert (
+            csog_state.size == 4
+        ), f"Ship{self.id}: Initial state must be a 4D vector!"
+        self._state = np.array(
+            [csog_state[0], csog_state[1], csog_state[3], csog_state[2], 0.0, 0.0]
+        )
         self.t_start = t_start if t_start is not None else 0.0
 
     def set_goal_state(self, csog_state: np.ndarray) -> None:
         assert csog_state.size == 4, f"Ship{self.id}: Goal state must be a 4D vector!"
-        self._goal_state = np.array([csog_state[0], csog_state[1], csog_state[3], csog_state[2], 0.0, 0.0])
+        self._goal_state = np.array(
+            [csog_state[0], csog_state[1], csog_state[3], csog_state[2], 0.0, 0.0]
+        )
 
     def set_nominal_plan(self, waypoints: np.ndarray, speed_plan: np.ndarray):
         assert (
@@ -620,7 +686,9 @@ class Ship(IShip):
         ), f"Ship{self.id}: Waypoints and speed plan must have the same number of columns!"
         n_px, n_wps = waypoints.shape
         if n_px != 2:
-            raise ValueError(f"Ship{self.id}: Waypoints do not contain planar coordinates along each column!")
+            raise ValueError(
+                f"Ship{self.id}: Waypoints do not contain planar coordinates along each column!"
+            )
 
         if n_wps < 2:
             raise ValueError(f"Ship{self.id}: Insufficient number of waypoints (< 2)!")
@@ -628,7 +696,9 @@ class Ship(IShip):
         self._waypoints = waypoints
         self._speed_plan = speed_plan
 
-    def set_remote_actor_predicted_trajectory(self, predicted_trajectory: np.ndarray) -> None:
+    def set_remote_actor_predicted_trajectory(
+        self, predicted_trajectory: np.ndarray
+    ) -> None:
         self._predicted_trajectory = predicted_trajectory
 
     def set_references(self, references: np.ndarray) -> None:
@@ -678,7 +748,9 @@ class Ship(IShip):
             active = False
 
         if self._input.size == 0:
-            self._input = self._controller.compute_inputs(self._references[:, 0], self._state, dt=0.0)
+            self._input = self._controller.compute_inputs(
+                self._references[:, 0], self._state, dt=0.0
+            )
 
         ship_sim_data = {
             "id": self.id,
@@ -688,7 +760,7 @@ class Ship(IShip):
             "input": self._input,
             "waypoints": self._waypoints,
             "speed_plan": self._speed_plan,
-            "references": self._references,
+            "references": self._references[:, 0],
             "goal_state": self._goal_state,
             "date_time_utc": datetime_str,
             "timestamp": t,
@@ -714,15 +786,28 @@ class Ship(IShip):
         output["max_turn_rate"] = self.max_turn_rate
         return output
 
-    def get_do_track_information(self) -> Tuple[List[Tuple[int, np.ndarray, np.ndarray, float, float]], List[float]]:
-        return self._tracker.get_track_information(mhm.convert_state_to_vxvy_state(self.csog_state))
+    def get_do_track_information(
+        self,
+    ) -> Tuple[List[Tuple[int, np.ndarray, np.ndarray, float, float]], List[float]]:
+        return self._tracker.get_track_information(
+            mhm.convert_state_to_vxvy_state(self.csog_state)
+        )
 
     def plot_colav_results(
-        self, ax_map: plt.Axes, enc: senc.ENC, plt_handles: dict, remote_actor: bool = False, **kwargs
+        self,
+        ax_map: plt.Axes,
+        enc: senc.ENC,
+        plt_handles: dict,
+        remote_actor: bool = False,
+        **kwargs,
     ) -> dict:
         if remote_actor and self._predicted_trajectory.size > 4:
-            plt_handles["colav_predicted_trajectory"].set_xdata(self._predicted_trajectory[1, :])
-            plt_handles["colav_predicted_trajectory"].set_ydata(self._predicted_trajectory[0, :])
+            plt_handles["colav_predicted_trajectory"].set_xdata(
+                self._predicted_trajectory[1, :]
+            )
+            plt_handles["colav_predicted_trajectory"].set_ydata(
+                self._predicted_trajectory[0, :]
+            )
             return plt_handles
 
         if self._colav is None:
@@ -784,7 +869,9 @@ class Ship(IShip):
             return np.empty(0)
 
         if self._model.dims[0] == 4:
-            return np.array([self._state[0], self._state[1], self._state[3], self._state[2]])
+            return np.array(
+                [self._state[0], self._state[1], self._state[3], self._state[2]]
+            )
         else:  # self._model.dims[0] == 6
             return mhm.convert_3dof_state_to_sog_cog_state(self._state)
 
@@ -869,7 +956,14 @@ class Ship(IShip):
     def goal_csog_state(self) -> np.ndarray:
         if self._goal_state.size == 0:
             return np.array([])
-        return np.array([self._goal_state[0], self._goal_state[1], self._goal_state[3], self._goal_state[2]])
+        return np.array(
+            [
+                self._goal_state[0],
+                self._goal_state[1],
+                self._goal_state[3],
+                self._goal_state[2],
+            ]
+        )
 
     @property
     def goal_state(self) -> np.ndarray:
