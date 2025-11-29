@@ -18,7 +18,7 @@ import colav_simulator.simulator as sim
 
 def test_simulator_vimmjipda() -> None:
     vimmjipda_config_path = (
-        Path.home() / "Desktop/autotuning/autotuning/vimmjipda/config/vimmjipda.yaml"
+        Path.home() / "vimmjipda/config/vimmjipda.yaml"
     )  # Path to the vimmjipda.yaml file, modify for your system
     vimmjipda_params = vti.VIMMJIPDAParams.from_yaml(vimmjipda_config_path)
     vimmjipda_tracker = vti.VIMMJIPDA(params=vimmjipda_params)

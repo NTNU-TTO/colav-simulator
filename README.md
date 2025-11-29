@@ -24,6 +24,7 @@ Mainly developed and tested under a Unix-based operating system (Linux, macOS).
 
 ## Dependencies
 Are all outlined in the `pyproject.toml` file. The git modules are the following:
+- seacharts: https://github.com/trymte/seacharts for considering ENC grounding hazards and beautiful map visualizations.
 - rrt-rs: https://github.com/ntnu-itk-autonomous-ship-lab/rrt-rs optionally for ship behavior generation.
 - vimmjipda: <https://github.com/ntnu-itk-autonomous-ship-lab/vimmjipda> for Multi-Target Tracking functionality.
 
@@ -40,14 +41,14 @@ If you get troubles installing `gdal`, this might be due to:
 - It not being installed correctly. Try to install from source or fix the gdal-version (see e.g. <https://stackoverflow.com/questions/34408699/having-trouble-installing-gdal-for-python> or <https://github.com/OSGeo/gdal/issues/2827>). An issue on the topic is found on <https://github.com/trymte/seacharts/issues/4>.
 - Incompatible python and gdal package versions.
 
-To also install the rrt-star-lib at <https://github.com/ntnu-itk-autonomous-ship-lab/rrt-rs>, do
+To also install the `rrt-star-lib` and `vimmjipda` optional packages, do
 ```bash
 uv sync --group optional
 ```
 
 Test the installation by running any of the files under `tests/`, e.g.
 ```bash
-uv run pytest tests/test_ship.py
+uv run pytest tests/test_simulator.py
 ```
 use these and the examples to get familiar with the simulator.
 
