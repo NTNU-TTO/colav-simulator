@@ -48,6 +48,7 @@ dev = [
 ]
 optional = [
     "rrt-star-lib>=1.0.0",
+    "vimmjipda>=1.0.0",
 ]
 
 [build-system]

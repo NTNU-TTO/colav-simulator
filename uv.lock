@@ -11,6 +11,15 @@ resolution-markers = [
 ]
 
 [[package]]
+name = "anytree"
+version = "2.13.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/bc/a8/eb55fab589c56f9b6be2b3fd6997aa04bb6f3da93b01154ce6fc8e799db2/anytree-2.13.0.tar.gz", hash = "sha256:c9d3aa6825fdd06af7ebb05b4ef291d2db63e62bb1f9b7d9b71354be9d362714", size = 48389, upload-time = "2025-04-08T21:06:30.662Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7b/98/f6aa7fe0783e42be3093d8ef1b0ecdc22c34c0d69640dfb37f56925cb141/anytree-2.13.0-py3-none-any.whl", hash = "sha256:4cbcf10df36b1f1cba131b7e487ff3edafc9d6e932a3c70071b5b768bab901ff", size = 45077, upload-time = "2025-04-08T21:06:29.494Z" },
+]
+
+[[package]]
 name = "attrs"
 version = "25.4.0"
 source = { registry = "https://pypi.org/simple" }
@@ -144,6 +153,7 @@ dev = [
 ]
 optional = [
     { name = "rrt-star-lib" },
+    { name = "vimmjipda" },
 ]
 
 [package.metadata]
@@ -173,7 +183,10 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=9.0.1" }]
-optional = [{ name = "rrt-star-lib", git = "https://github.com/ntnu-itk-autonomous-ship-lab/rrt-rs.git?rev=c212eeaa7479bc61f2aa9f25dc19719de04ade20" }]
+optional = [
+    { name = "rrt-star-lib", git = "https://github.com/ntnu-itk-autonomous-ship-lab/rrt-rs.git?rev=c212eeaa7479bc61f2aa9f25dc19719de04ade20" },
+    { name = "vimmjipda", git = "https://github.com/ntnu-itk-autonomous-ship-lab/vimmjipda.git?rev=5954e040cb04b3d909301bf53d35c6357ab3b693" },
+]
 
 [[package]]
 name = "colorama"
@@ -1540,4 +1553,22 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/95/32/1a225d6164441be760d75c2c42e2780dc0873fe382da3e98a2e1e48361e5/tzdata-2025.2.tar.gz", hash = "sha256:b60a638fcc0daffadf82fe0f57e53d06bdec2f36c4df66280ae79bce6bd6f2b9", size = 196380, upload-time = "2025-03-23T13:54:43.652Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5c/23/c7abc0ca0a1526a0774eca151daeb8de62ec457e77262b66b359c3c7679e/tzdata-2025.2-py2.py3-none-any.whl", hash = "sha256:1a403fada01ff9221ca8044d701868fa132215d84beb92242d9acd2147f667a8", size = 347839, upload-time = "2025-03-23T13:54:41.845Z" },
+]
+
+[[package]]
+name = "vimmjipda"
+version = "1.0.0"
+source = { git = "https://github.com/ntnu-itk-autonomous-ship-lab/vimmjipda.git?rev=5954e040cb04b3d909301bf53d35c6357ab3b693#5954e040cb04b3d909301bf53d35c6357ab3b693" }
+dependencies = [
+    { name = "anytree" },
+    { name = "dacite" },
+    { name = "matplotlib" },
+    { name = "matplotlib-scalebar" },
+    { name = "numpy", version = "2.2.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "numpy", version = "2.3.5", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "pyyaml" },
+    { name = "scikit-image" },
+    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scipy", version = "1.16.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "shapely" },
 ]
