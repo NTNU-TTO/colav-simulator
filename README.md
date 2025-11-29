@@ -7,7 +7,7 @@ The `COLAVEnvironment` represents the `Gymnasium` compatible environment wrapper
 
 The framework uses the North-East coordinate system with values in meters, speed in meters per second, angles in radians, and angular velocities in radians per second.
 
-Mainly developed and tested under a Unix-based operating system (Linux, macOS).
+Developed as part of the Autoship Centre for Research-based Innovation (SFI), and tested under a Unix-based operating system (Linux, macOS). Open sourced in the autumn of 2025.
 
 [![platform](https://img.shields.io/badge/platform-linux%20%7C%20macOS-lightgrey)]()
 [![python version](https://img.shields.io/badge/python-3.10-blue)]()
@@ -26,7 +26,7 @@ Mainly developed and tested under a Unix-based operating system (Linux, macOS).
 Are all outlined in the `pyproject.toml` file. The git modules are the following:
 - seacharts: https://github.com/trymte/seacharts for considering ENC grounding hazards and beautiful map visualizations.
 - rrt-rs: https://github.com/ntnu-itk-autonomous-ship-lab/rrt-rs optionally for ship behavior generation.
-- vimmjipda: <https://github.com/ntnu-itk-autonomous-ship-lab/vimmjipda> for Multi-Target Tracking functionality.
+- vimmjipda: <https://github.com/ntnu-itk-autonomous-ship-lab/vimmjipda> optionally for Multi-Target Tracking functionality.
 
 ## Generic Install Instructions
 
@@ -53,7 +53,6 @@ uv run pytest tests/test_simulator.py
 use these and the examples to get familiar with the simulator.
 
 ## Citation
-This code was developed through the Autoship Centre for Research-based Innovation (SFI Autoship) based in Trondheim. 
 
 If you are using the `colav_simulator` in your work, please use the following citation:
 ```bibtex
@@ -209,6 +208,7 @@ Note that the visualizer uses Matplotlib, and scales badly with a large number o
 
 ### Ship
 #### Interface and core functionality
+
 The Ship class simulates the behaviour of an individual ship and must adhere to the `IShip` interface, which necessitates that the ship class provides among others, a:
 
 - `forward(self, dt: float, w = Optional[DisturbanceData] = None) -> Tuple[np.ndarray, np.ndarray, np.ndarray]` function that allows simple forward simulation of the vessel, with disturbance consideration if data is available. Returns the new state, inputs to get there and the references used.
@@ -224,6 +224,7 @@ Standardized input/output formats are used for the interfaces to make the code f
 If you need to implement a model which has state, input or reference dimensions larger than the aforementioned, make an issue on the topic and pull request with the necessary interface changes.
 
 #### Subsystem Configurations
+
 The ship can be configured to use different combinations of collision avoidance algorithms, guidance systems, controllers, estimators, sensors, and models. The key element here is that each subsystem provides a standard inferface, which any external module using the subsystem must adhere to.  See the source code and test files for more in depth info on the functionality. Check out the `ship_list` entry under the `schemas/scenario.yaml` to get a clue on what you can configure for the ship. NOTE: The own-ship must always have `ID=0` and is always the first ship to configure under `ship_list`.
 
 If you want to expand the `Ship` object by adding support for a new model, controller, guidance law etc., a rough recipe is the following (in this example for a new model, but the procedure will be the same for any subsystem or module in the framework):
@@ -239,38 +240,47 @@ In all these steps, adhere to the used code style and docstring format.
 Some common configurations of the ship subsystems are detailed below.
 
 #### External Control
+
 In case you are employing an RL-agent through the `COLAVEnvironment`, the `remote_actor` parameter inside the simulator `step(..)`-function is set to true. In this case, the RL-agent sets the ship references (pose, velocity and acceleration / inputs) externally.
 
 #### Guidance, Navigation and Control With a Kinetic Model
+
 The `scenarios/head_on.yaml` scenario contains a typical GNC/autopilot-configuration of the own-ship, where LOS-guidance (given waypoints and a speed plan) provides course and speed references to a low-level controller (in this case a feedback-linearizing surge-heading controller).
 
 The ship `plan` step will then only entail that the configured `guidance` object LOS algorithm computes course+speed references, which are provided to the onboard controller during the `forward` call. The onboard controller then computes the required force vector to track the reference setpoints.
 
 #### Guidance, Navigation and Control With a Kinematic Model
+
 The `scenarios/ais_scenario1.yaml` scenario contains a typical GNC/autopilot-configuration of the own-ship, where LOS-guidance (given waypoints and a speed plan) provides course and speed references that are directly passed through to a simple kinematic ship model. Here, a `PassThroughCS` "controller" is used to allow for passing the guidance system course and speed references straight through the controller step and directly to the ship model.
 
 The ship `plan` step will then only entail that the configured `guidance` object LOS algorithm computes course+speed references, which are provided to the onboard controller and directly forwarded during the `forward` call. The ship model will then directly use the guidance system references as inputs.
 
 
 #### Planner Providing Inputs and Not (Pose, Velocity, Acceleration) References
+
 In case you want to develop a motion planning algorithm that provides low-level inputs (e.g. generalized force inputs) to the ship instead of the standard 9-entry pose, velocity, acceleration reference format, you can specify a `PassThroughInputs` type of controller. This "controller" essentially lets the input references (which are now low-level inputs from your algorithm) go straight through, such that the controller is in practice disabled. An example of this is found in the `scenarios/simple_planning_example.yaml`, where a rudder-propeller mapping with a specificed lever arm is used to map forces in x and y to include the yaw moment as well.
 
 The ship `plan` step will then entail that you use your wrapped `colav` system, that provide `references` that are low-level inputs. When these are passed to the `controller` object during the `forward` call, they will pass straight through and go into the ship model object.
 
 #### Godlike Target Tracking (Ground Truth Tracking)
+
 If you want to test your planning algorithm with perfect knowledge on nearby vessels, you can specify the `GodTracker` to be used under `tracker` in the scenario configuration file. As this object has no parameters, the configuration entry is an empty string `god_tracker: ''` (see `schemas/scenario.yaml` for clues).
 
 #### Simple Kalman-filter based Target Tracking
+
 The standard support for target tracking in the simulator is to use a Kalman Filter for estimating the states of nearby vessels. Most of the scenario files have examples on how to configure this tracker. Tune the measurement covariance (R) through the sensor configuration, and adjust the scenario configuration based on whether or not you want to consider AIS-measurements, Radar-measurements or both. See the `tests/test_simulator.py` for example usage and `tests/test_radar.py` for the `Radar` class functionality.
 
 #### Multi-Target Tracking with Realistic Track Initiation and Termination
+
 An interface at <https://github.com/ntnu-itk-autonomous-ship-lab/vimmjipda> exist for coupling the Visibility Interacting Multiple Models Joint Integrated Probabilistic Data Association (VIMMJIPDA) Multi-Target Tracker (MTT) with the simulator, and can be used with the `Radar` sensor (no AIS consideration implemented yet) for tracking multiple ships with simple clutter noise.  See the `tests/test_simulator_jipda.py`for example usage.
 
 #### COLAV
+
 The `colav_interface.py` provides an interface for arbitrary `COLAV` planning algorithms and hierarchys within. See the file for examples/inspiration on how to wrap your own COLAV-planner to make it adhere to the interface. Alternatively, you can provide your own COLAV system through the `ownship_colav_system` input to the simulator `run(.)` function. In any case, the COLAV algorithm should adhere to the `ICOLAV` interface (see `colav_interface.py`). This enables the usage of both internally developed COLAV planners in addition to third-party ones.
 
 
 ## Future Enhancements (Roadmap)
+
 - Create github actions for CI/CD pipeline.
 - Mandate unittesting of all modules and their core functionality.
 - Improve random generation of vessel COLREGS scenarios. E.g. use AIS data to sample "realistic" vessel trajectories based on a fitted distribution for historical vessel positions and velocities.
