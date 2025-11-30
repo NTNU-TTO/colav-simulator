@@ -1526,6 +1526,9 @@ class Visualizer:
                 ship_color = self._config.ship_colors[1]
 
             X = trajectory_list[i]["X"]
+            if X.size == 0 or X.ndim < 2:
+                continue
+
             first_valid_idx, last_valid_idx = mhm.index_of_first_and_last_non_nan(
                 X[0, :]
             )
@@ -1780,19 +1783,19 @@ class Visualizer:
             os_en_traj, min_os_depth, enc
         )
         dist2closest_grounding_hazard = np.linalg.norm(distance_vectors, axis=0)[
-            : sim_times.shape[0]
+            : len(os_timestamps)
         ]
         if n_do == 0:
             axes = [axes]
         axes[0].semilogy(
-            sim_times,
+            os_timestamps,
             dist2closest_grounding_hazard,
             "b",
             label="Distance to closest grounding hazard",
         )
         axes[0].semilogy(
-            sim_times,
-            d_safe_so * np.ones_like(sim_times),
+            os_timestamps,
+            d_safe_so * np.ones_like(os_timestamps),
             "r--",
             label="Minimum safety margin",
         )
