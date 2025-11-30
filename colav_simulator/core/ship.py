@@ -86,10 +86,17 @@ class Config:
             config.t_end = config_dict["t_end"]
 
         config.id = config_dict["id"]
-        config.mmsi = config_dict["mmsi"]
-        config.model = models.Config.from_dict(config_dict["model"])
-        config.controller = controllers.Config.from_dict(config_dict["controller"])
-        config.sensors = sensing.Config.from_dict(config_dict["sensors"])
+        if "mmsi" in config_dict:
+            config.mmsi = config_dict["mmsi"]
+
+        if "model" in config_dict:
+            config.model = models.Config.from_dict(config_dict["model"])
+
+        if "controller" in config_dict:
+            config.controller = controllers.Config.from_dict(config_dict["controller"])
+
+        if "sensors" in config_dict:
+            config.sensors = sensing.Config.from_dict(config_dict["sensors"])
 
         if "tracker" in config_dict:
             config.tracker = trackers.Config.from_dict(config_dict["tracker"])

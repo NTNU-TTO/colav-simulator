@@ -1,5 +1,6 @@
 """
-Test module for the Ship class. Use it to test the ship's behavior in a scenario, and/or tune your specific guidance algorithm + controller.
+Tests for the Ship class. Use the test_ship function to test the ship's behavior in a scenario,
+and/or tune your specific guidance algorithm + controller.
 """
 
 from pathlib import Path
@@ -7,8 +8,10 @@ from pathlib import Path
 import numpy as np
 from matplotlib import pyplot as plt
 
+import colav_simulator.common.file_utils as fu
 import colav_simulator.common.map_functions as mapf
 import colav_simulator.common.math_functions as mf
+import colav_simulator.common.paths as dp
 import colav_simulator.common.plotters as plotters
 import colav_simulator.core.controllers as controllers
 import colav_simulator.core.guidances as guidances
@@ -601,6 +604,163 @@ def test_ship() -> None:
         axs["N"].legend()
 
     plt.show()
+
+
+def test_config_from_dict_missing_model_uses_default():
+    config_dict = {
+        "id": 1,
+        "mmsi": 100,
+        "guidance": {
+            "los": {
+                "pass_angle_threshold": 80.0,
+                "R_a": 40.0,
+                "K_p": 0.015,
+            }
+        },
+    }
+
+    config = ship.Config.from_dict(config_dict)
+
+    assert config.model is not None
+    assert isinstance(config.model, models.Config)
+    assert config.model.csog is not None
+    assert config.id == 1
+    assert config.mmsi == 100
+    assert config.guidance is not None
+    assert config.guidance.los is not None
+
+
+def test_config_from_dict_missing_controller_uses_default():
+    config_dict = {
+        "id": 2,
+        "mmsi": 101,
+        "model": {
+            "csog": {
+                "length": 10.0,
+                "width": 3.0,
+                "draft": 0.5,
+                "T_chi": 3.0,
+                "T_U": 5.0,
+                "r_max": 4.0,
+                "U_min": 0.0,
+                "U_max": 15.0,
+            }
+        },
+        "guidance": {
+            "los": {
+                "pass_angle_threshold": 80.0,
+                "R_a": 40.0,
+            }
+        },
+    }
+
+    config = ship.Config.from_dict(config_dict)
+
+    assert config.controller is not None
+    assert isinstance(config.controller, controllers.Config)
+    assert config.id == 2
+    assert config.model is not None
+    assert config.model.csog is not None
+
+
+def test_config_from_dict_missing_multiple_fields_uses_defaults():
+    config_dict = {
+        "id": 3,
+        "mmsi": 102,
+        "guidance": {
+            "los": {
+                "pass_angle_threshold": 90.0,
+                "R_a": 25.0,
+            }
+        },
+    }
+
+    config = ship.Config.from_dict(config_dict)
+
+    assert config.model is not None
+    assert isinstance(config.model, models.Config)
+    assert config.model.csog is not None
+    assert config.controller is not None
+    assert isinstance(config.controller, controllers.Config)
+    assert config.sensors is not None
+    assert isinstance(config.sensors, sensorss.Config)
+    assert config.tracker is not None
+    assert isinstance(config.tracker, trackers.Config)
+    assert config.id == 3
+    assert config.mmsi == 102
+    assert config.guidance is not None
+    assert config.guidance.los is not None
+
+
+def test_config_round_trip_planning_example():
+    config_file = dp.scenarios / "planning_example.yaml"
+    original_dict = fu.read_yaml_into_dict(config_file)
+
+    assert "ship_list" in original_dict
+    assert len(original_dict["ship_list"]) > 0
+
+    for ship_config_dict in original_dict["ship_list"]:
+        config = ship.Config.from_dict(ship_config_dict)
+
+        assert config.id == ship_config_dict["id"]
+        if "mmsi" in ship_config_dict:
+            assert config.mmsi == ship_config_dict["mmsi"]
+
+        round_trip_dict = config.to_dict()
+
+        assert round_trip_dict["id"] == ship_config_dict["id"]
+        if "mmsi" in ship_config_dict:
+            assert round_trip_dict["mmsi"] == ship_config_dict["mmsi"]
+
+        if "csog_state" in ship_config_dict:
+            assert "csog_state" in round_trip_dict
+            assert len(round_trip_dict["csog_state"]) == 4
+            # COG is converted from deg to rad and back, so check approximate equality
+            assert (
+                abs(
+                    round_trip_dict["csog_state"][0] - ship_config_dict["csog_state"][0]
+                )
+                < 1e-6
+            )
+            assert (
+                abs(
+                    round_trip_dict["csog_state"][1] - ship_config_dict["csog_state"][1]
+                )
+                < 1e-6
+            )
+            assert (
+                abs(
+                    round_trip_dict["csog_state"][2] - ship_config_dict["csog_state"][2]
+                )
+                < 1e-6
+            )
+            assert (
+                abs(
+                    round_trip_dict["csog_state"][3] - ship_config_dict["csog_state"][3]
+                )
+                < 1e-6
+            )
+
+        if "goal_csog_state" in ship_config_dict:
+            assert "goal_csog_state" in round_trip_dict
+            assert len(round_trip_dict["goal_csog_state"]) == 4
+
+        assert "model" in round_trip_dict
+        assert "controller" in round_trip_dict
+        assert "sensors" in round_trip_dict
+        assert "tracker" in round_trip_dict
+        assert "guidance" in round_trip_dict or "colav" in round_trip_dict
+
+        config_round_trip = ship.Config.from_dict(round_trip_dict)
+        assert config_round_trip.id == config.id
+        assert config_round_trip.mmsi == config.mmsi
+        assert config_round_trip.model is not None
+        assert config_round_trip.controller is not None
+        assert config_round_trip.sensors is not None
+        assert config_round_trip.tracker is not None
+        assert (config_round_trip.guidance is not None) or (
+            config_round_trip.colav is not None
+        )
 
 
 if __name__ == "__main__":
