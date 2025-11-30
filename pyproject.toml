@@ -66,6 +66,6 @@ only-include = ["colav_simulator"]
 "tests" = "colav_simulator/tests"
 
 [tool.uv.sources]
-seacharts = { git = "https://github.com/trymte/seacharts.git", rev = "6818e8abf845cfa0dfc6038c11a670da988ad531" }
+seacharts = { git = "https://github.com/trymte/seacharts.git", rev = "18da5093303a7d3b0767bbf24da7ee2edcc343a9" }
 vimmjipda = { git = "https://github.com/ntnu-itk-autonomous-ship-lab/vimmjipda.git", rev = "5954e040cb04b3d909301bf53d35c6357ab3b693" }
-rrt-star-lib = { git = "https://github.com/ntnu-itk-autonomous-ship-lab/rrt-rs.git", rev = "c212eeaa7479bc61f2aa9f25dc19719de04ade20" }
+rrt-star-lib = { git = "https://github.com/ntnu-itk-autonomous-ship-lab/rrt-rs.git", rev = "184b045e05861c9d7fe4f236786301214f9b87d2" }

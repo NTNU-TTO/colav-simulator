@@ -174,7 +174,7 @@ requires-dist = [
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "scikit-image", specifier = ">=0.25.2" },
     { name = "scipy", specifier = ">=1.15.3" },
-    { name = "seacharts", git = "https://github.com/trymte/seacharts.git?rev=6818e8abf845cfa0dfc6038c11a670da988ad531" },
+    { name = "seacharts", git = "https://github.com/trymte/seacharts.git?rev=18da5093303a7d3b0767bbf24da7ee2edcc343a9" },
     { name = "shapely", specifier = ">=2.1.2" },
     { name = "stable-baselines3", specifier = ">=2.7.0" },
     { name = "torch", specifier = ">=1.13" },
@@ -184,7 +184,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [{ name = "pytest", specifier = ">=9.0.1" }]
 optional = [
-    { name = "rrt-star-lib", git = "https://github.com/ntnu-itk-autonomous-ship-lab/rrt-rs.git?rev=c212eeaa7479bc61f2aa9f25dc19719de04ade20" },
+    { name = "rrt-star-lib", git = "https://github.com/ntnu-itk-autonomous-ship-lab/rrt-rs.git?rev=184b045e05861c9d7fe4f236786301214f9b87d2" },
     { name = "vimmjipda", git = "https://github.com/ntnu-itk-autonomous-ship-lab/vimmjipda.git?rev=5954e040cb04b3d909301bf53d35c6357ab3b693" },
 ]
 
@@ -1237,8 +1237,8 @@ wheels = [
 
 [[package]]
 name = "rrt-star-lib"
-version = "1.0.0"
-source = { git = "https://github.com/ntnu-itk-autonomous-ship-lab/rrt-rs.git?rev=c212eeaa7479bc61f2aa9f25dc19719de04ade20#c212eeaa7479bc61f2aa9f25dc19719de04ade20" }
+version = "2.0.0"
+source = { git = "https://github.com/ntnu-itk-autonomous-ship-lab/rrt-rs.git?rev=184b045e05861c9d7fe4f236786301214f9b87d2#184b045e05861c9d7fe4f236786301214f9b87d2" }
 dependencies = [
     { name = "matplotlib" },
     { name = "maturin" },
@@ -1342,7 +1342,7 @@ wheels = [
 [[package]]
 name = "seacharts"
 version = "2.2.0"
-source = { git = "https://github.com/trymte/seacharts.git?rev=6818e8abf845cfa0dfc6038c11a670da988ad531#6818e8abf845cfa0dfc6038c11a670da988ad531" }
+source = { git = "https://github.com/trymte/seacharts.git?rev=18da5093303a7d3b0767bbf24da7ee2edcc343a9#18da5093303a7d3b0767bbf24da7ee2edcc343a9" }
 dependencies = [
     { name = "cartopy" },
     { name = "cerberus" },
