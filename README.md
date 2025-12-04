@@ -292,7 +292,6 @@ The `colav_interface.py` provides an interface for arbitrary `COLAV` planning al
 - Improve random generation of vessel COLREGS scenarios. E.g. use AIS data to sample "realistic" vessel trajectories based on a fitted distribution for historical vessel positions and velocities.
 - Improve live-visualization in the simulator w.r.t. code readability and run-time. Switch out matplotlib for a faster backend. Matplotlib is known to leak memory, so switching it for e.g. PyGtGraph <https://www.pyqtgraph.org/> or VisPy <https://vispy.org/> is promising.
 - Add functionality for saving simulation results to file.
-- Streamline installation of all external repo dependencies through a script.
 - Separate the large `schemas/scenario.yaml` validation schema into multiple sub-schemas for easier readability.
 - Create IsaacGym-wrapper for GPU-enabled parallelized RL in the environment.
 
