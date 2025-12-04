@@ -30,6 +30,12 @@ Are all outlined in the `pyproject.toml` file. The git modules are the following
 
 ## Generic Install Instructions
 
+Install `uv` (<https://docs.astral.sh/uv/getting-started/installation/>):
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+Install project:
 ```bash
 uv sync
 ```
