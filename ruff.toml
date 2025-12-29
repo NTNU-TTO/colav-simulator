@@ -1,0 +1,166 @@
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "scripts",
+    "site-packages",
+    "venv",
+    "typings",
+    "development",
+    # Project-specific large directories that slow down linting
+    "scenarios",
+    "config"
+]
+
+extend-include = ["*.ipynb"]
+
+# Same as Black.
+line-length = 125
+indent-width = 4
+
+output-format = "grouped"
+
+[lint]
+select = [
+    "A",    # Builtins.
+    "ANN",  # Annotations.
+    "ARG",  # Unused arguments.
+    "B",    # Bugbear.
+    "C4",   # Comprehensions.
+    "C901", # mccabe code complexity.
+    "D",    # Pydocstyle.
+    "E",    # Pydocstyle errors.
+    "F",    # Pyflakes.
+    "I",    # Isort.
+    "ICN",  # Banned imports.
+    "NPY",  # Numpy.
+    "PGH",  # Accurate ignores.
+    "PL",   # Pylint.
+    "Q",    # Quotes.
+    "S101", # Checks for uses of the assert keyword.
+    "UP",   # Pyupgrade.
+    "W",    # Pycodestyle warnings.
+]
+
+ignore = [
+    "ANN002",  # Type hint for *args.
+    "ANN003",  # Type hint for **kwargs.
+    "ANN401",  # Disallow `Any`.
+    "B008",    # Recommended ignore when using ruff as formatter.
+    "D100",    # Allow undocumented modules, documents functions, classes etc directly.
+    "D107",    # Allow missing docstrings in __init__.
+    "D203",    # We use the D211 rule instead allowing the docstring to be on the first line below class definition.
+    "D206",    # Recommended ignore when using ruff as formatter.
+    "D213",    # We use D212 rule instead allowing docstring summary on the first line.
+    "D300",    # Recommended ignore when using ruff as formatter.
+    "D101",    # Missing class docstring
+    "D401",    # Allow non-imparative mood docstrings.
+    "D404",    # Allow docstring to start with this.
+    "D406",    # Using a different style guide for docstrings.
+    "D407",    # Using a different style guide for docstrings.
+    "E111",    # Recommended ignore when using ruff as formatter.
+    "E114",    # Recommended ignore when using ruff as formatter.
+    "E117",    # Recommended ignore when using ruff as formatter.
+    "E203",    # Ignored as it conflicts with Black and Ruff.
+    "E402",    # Recommended ignore when using ruff as formatter.
+    "E701",    # Recommended ignore when using ruff as formatter.
+    "FA102",   # Disable `future import` warnings, we don't need to support old versions of Python.
+    "F722",    # Recommended ignore when using ruff as formatter.
+    "PLR0913", # Number of arguments in a function.
+    "PLR2004", # Magic value used in comparison.
+    "Q000",    # Recommended ignore when using ruff as formatter.
+    "Q001",    # Recommended ignore when using ruff as formatter.
+    "Q002",    # Recommended ignore when using ruff as formatter.
+    "Q003",    # Recommended ignore when using ruff as formatter.
+    "W191",    # Recommended ignore when using ruff as formatter.
+    "PGH003",  # Allow type: ignore comments
+]
+
+# Allow fix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = ["F401"]
+
+# Allow unused variables when underscore-prefixed.
+dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
+
+preview = true                # This disables deprecated rules.
+explicit-preview-rules = true # This requires preview rules to be manually selected.
+
+[lint.pylint]
+max-returns = 10
+
+[lint.mccabe]
+# Flag errors (`C901`) whenever the complexity level exceeds the threshold.
+max-complexity = 15
+
+[lint.pydocstyle]
+convention = "google"
+
+[lint.per-file-ignores]
+"__init__.py" = [
+    "D",
+    "F401", # Avoid issues in the __init__ file where we import modules for easier use in other compoenents and bases.
+]
+# Ignore asserts, missing docstrings, missing arguments and missing type arguments for tests.
+"tests/*.py" = ["S101", "D102", "D103", "ARG", "ANN001"] 
+
+[lint.flake8-quotes]
+inline-quotes = "double"
+
+[lint.flake8-import-conventions]
+banned-from = ["pandas", "numpy"]
+
+[lint.flake8-annotations]
+suppress-none-returning = true
+mypy-init-return = true
+
+
+[format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+# Enable auto-formatting of code examples in docstrings. Markdown,
+# reStructuredText code/literal blocks and doctests are all supported.
+#
+# This is currently disabled by default, but it is planned for this
+# to be opt-out in the future.
+docstring-code-format = false
+
+# Set the line length limit used when formatting code snippets in
+# docstrings.
+#
+# This only has an effect when the `docstring-code-format` setting is
+# enabled.
+docstring-code-line-length = "dynamic"
+# Ignore `E402` (import violations) in all `__init__.py` files, and in `path/to/file.py`.
