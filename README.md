@@ -3,6 +3,7 @@
 [![platform](https://img.shields.io/badge/platform-linux%20%7C%20macOS-lightgrey)]()
 [![python version](https://img.shields.io/badge/python-3.10-blue)]()
 [![python version](https://img.shields.io/badge/python-3.11-blue)]()
+[![CI](https://github.com/NTNU-TTO/colav-simulator/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/NTNU-TTO/colav-simulator/actions/workflows/ci.yml)
 
 This repository implements a framework for simulating and evaluating autonomous ship collision avoidance (COLAV) control strategies. The initial framework prototype is described in the [CCTA2023 paper](https://ieeexplore.ieee.org/abstract/document/10252863). As of September 2023, the simulation framework has been wrapped to be compatible with [Gymnasium](https://github.com/Farama-Foundation/Gymnasium) and [Stable Baselines](https://github.com/DLR-RM/stable-baselines3), such that you can now use it as a gym for training RL-agents.
 
