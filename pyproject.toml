@@ -45,6 +45,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=9.0.1",
+    "ruff>=0.14.10",
 ]
 optional = [
     "rrt-star-lib>=1.0.0",
