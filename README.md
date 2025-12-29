@@ -102,7 +102,7 @@ If you are using `RRTs` from `rrt-rs` for ship behavior generation in your work 
 
 The `main` branch shall always be working. This means that:
 
-- All of its features/modules shall be properly documented through quality code + descriptive text where appropriate. Use `type annotation` for increased readability.
+- All of its features/modules shall be properly documented through quality code + descriptive text where appropriate, and the CI pipeline should pass before any PR can be merged into main.
 - The `ScenarioGenerator` is successfully able to generate any scenario from valid config files.
 - The `Simulator` is successfully able to run through any number of scenarios, either generated or loaded from file. Furthermore, it should be problem free to save and load scenarios to/from (valid) scenario files.
 - The `Visualizer`is successfully able to visualize each of these scenarios live, if toggled on.
@@ -297,7 +297,6 @@ The `colav_interface.py` provides an interface for arbitrary `COLAV` planning al
 
 ## Future Enhancements (Roadmap)
 
-- Create github actions for CI/CD pipeline.
 - Mandate unittesting of all modules and their core functionality.
 - Improve random generation of vessel COLREGS scenarios. E.g. use AIS data to sample "realistic" vessel trajectories based on a fitted distribution for historical vessel positions and velocities.
 - Improve live-visualization in the simulator w.r.t. code readability and run-time. Switch out matplotlib for a faster backend. Matplotlib is known to leak memory, so switching it for e.g. PyGtGraph <https://www.pyqtgraph.org/> or VisPy <https://vispy.org/> is promising.
