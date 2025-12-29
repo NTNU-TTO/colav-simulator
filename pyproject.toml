@@ -37,8 +37,6 @@ dependencies = [
     "scipy>=1.15.3",
     "seacharts",
     "shapely>=2.1.2",
-    "stable-baselines3>=2.7.0",
-    "torch>=1.13",
     "tqdm>=4.67.1",
 ]
 
