@@ -70,12 +70,13 @@ ignore = [
     "ANN401",  # Disallow `Any`.
     "B008",    # Recommended ignore when using ruff as formatter.
     "D100",    # Allow undocumented modules, documents functions, classes etc directly.
+    "D101",    # Missing class docstring
+    "D102",    # Missing docstring in public method.
     "D107",    # Allow missing docstrings in __init__.
     "D203",    # We use the D211 rule instead allowing the docstring to be on the first line below class definition.
     "D206",    # Recommended ignore when using ruff as formatter.
     "D213",    # We use D212 rule instead allowing docstring summary on the first line.
     "D300",    # Recommended ignore when using ruff as formatter.
-    "D101",    # Missing class docstring
     "D401",    # Allow non-imparative mood docstrings.
     "D404",    # Allow docstring to start with this.
     "D406",    # Using a different style guide for docstrings.

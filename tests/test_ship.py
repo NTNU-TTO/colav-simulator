@@ -1,5 +1,6 @@
-"""
-Tests for the Ship class. Use the test_ship function to test the ship's behavior in a scenario,
+"""Tests for the Ship class.
+
+Use the test_ship function to test the ship's behavior in a scenario,
 and/or tune your specific guidance algorithm + controller.
 """
 
@@ -12,19 +13,15 @@ import colav_simulator.common.file_utils as fu
 import colav_simulator.common.map_functions as mapf
 import colav_simulator.common.math_functions as mf
 import colav_simulator.common.paths as dp
-import colav_simulator.common.plotters as plotters
-import colav_simulator.core.controllers as controllers
-import colav_simulator.core.guidances as guidances
-import colav_simulator.core.models as models
 import colav_simulator.core.sensing as sensorss
-import colav_simulator.core.ship as ship
-import colav_simulator.core.stochasticity as stochasticity
-import colav_simulator.core.tracking.trackers as trackers
+from colav_simulator.common import plotters
+from colav_simulator.core import controllers, guidances, models, ship, stochasticity
+from colav_simulator.core.tracking import trackers
 from colav_simulator.scenario_config import OwnshipPositionGenerationMethod
 from colav_simulator.scenario_generator import ScenarioGenerator
 
 
-def test_ship() -> None:
+def test_ship() -> None:  # noqa: PLR0915
     fig_size = [25, 13]  # figure1 size in cm
     dpi_value = 150  # figure dpi value
     horizon = 150.0
@@ -35,7 +32,8 @@ def test_ship() -> None:
     map_orig = np.array([6573700.0, -31924.0])
     map_data_files = [
         str(Path.home() / "enc_data" / "Rogaland_utm33.gdb")
-    ]  # You need to create this folder and put a downloaded Rogaland .gdb file in it. See the README.md file for more information.
+    ]  # You need to create this folder and put a downloaded Rogaland .gdb file in it.
+    # See the README.md file for more information.
 
     # Put new_data to True to load map data in ENC if it is not already loaded
     scenario_generator = ScenarioGenerator(
@@ -116,7 +114,7 @@ def test_ship() -> None:
         ship_obj=ownship,
         replan=True,
         simulation_timespan=horizon,
-        show_plots=True,
+        show_plots=False,
     )
 
     n_wps = 4
@@ -128,8 +126,8 @@ def test_ship() -> None:
         draft=ownship.draft,
         n_wps=n_wps,
     )
-    speed_plan = (
-        4.0 * np.ones(waypoints.shape[1])
+    speed_plan = 4.0 * np.ones(
+        waypoints.shape[1]
     )  # = scenario_generator.generate_random_speed_plan(U=5.0, n_wps=waypoints.shape[1])
     ownship.set_nominal_plan(waypoints=waypoints, speed_plan=speed_plan)
 
@@ -404,12 +402,8 @@ def test_ship() -> None:
             chi_ref = traj[2, ref_counter]
             U_ref = traj[3, ref_counter]
 
-        ownship.set_references(
-            np.array([0.0, 0.0, chi_ref, U_ref, 0.0, 0.0, 0.0, 0.0, 0.0])
-        )
-        trajectory[:, k], tau[:, k], refs[:, k] = ownship.forward(
-            dt, w=disturbance_data
-        )
+        ownship.set_references(np.array([0.0, 0.0, chi_ref, U_ref, 0.0, 0.0, 0.0, 0.0, 0.0]))
+        trajectory[:, k], tau[:, k], refs[:, k] = ownship.forward(dt, w=disturbance_data)
         disturbance.update(time[k], dt)
 
     # Plots
@@ -458,18 +452,14 @@ def test_ship() -> None:
         scenario_generator.enc.draw_polygon(ship_poly, "magenta", fill=True)
 
     # States
-    fig = plt.figure(
-        figsize=(mf.cm2inch(fig_size[0]), mf.cm2inch(fig_size[1])), dpi=dpi_value
-    )
+    fig = plt.figure(figsize=(mf.cm2inch(fig_size[0]), mf.cm2inch(fig_size[1])), dpi=dpi_value)
     axs = fig.subplot_mosaic(
         [
             ["xy", "chi", "r"],
             ["U", "u", "v"],
         ]
     )
-    axs["xy"].plot(
-        traj[1, :] - origin[1], traj[0, :] - origin[0], "rx", label="Waypoints"
-    )
+    axs["xy"].plot(traj[1, :] - origin[1], traj[0, :] - origin[0], "rx", label="Waypoints")
     axs["xy"].plot(
         trajectory[1, :] - origin[1],
         trajectory[0, :] - origin[0],
@@ -520,9 +510,7 @@ def test_ship() -> None:
         "r--",
         label="Yaw rate reference",
     )
-    axs["r"].plot(
-        time, np.rad2deg(mf.wrap_angle_to_pmpi(trajectory[5])), "k", label="Yaw rate"
-    )
+    axs["r"].plot(time, np.rad2deg(mf.wrap_angle_to_pmpi(trajectory[5])), "k", label="Yaw rate")
     axs["r"].set_xlabel("Time (s)")
     axs["r"].set_ylabel("Angular rate rate (deg/s)")
     axs["r"].grid()
@@ -538,12 +526,8 @@ def test_ship() -> None:
     axs["U"].legend()
 
     # Disturbances
-    fig = plt.figure(
-        figsize=(mf.cm2inch(fig_size[0]), mf.cm2inch(fig_size[1])), dpi=dpi_value
-    )
-    axs = fig.subplot_mosaic(
-        [["wind_speed", "wind_direction"], ["current_speed", "current_direction"]]
-    )
+    fig = plt.figure(figsize=(mf.cm2inch(fig_size[0]), mf.cm2inch(fig_size[1])), dpi=dpi_value)
+    axs = fig.subplot_mosaic([["wind_speed", "wind_direction"], ["current_speed", "current_direction"]])
 
     axs["wind_speed"].plot(time, disturbances[0, :], "k", label="Wind speed")
     axs["wind_speed"].set_xlabel("Time (s)")
@@ -551,9 +535,7 @@ def test_ship() -> None:
     axs["wind_speed"].grid()
     axs["wind_speed"].legend()
 
-    axs["wind_direction"].plot(
-        time, np.rad2deg(disturbances[1, :]), "k", label="Wind direction"
-    )
+    axs["wind_direction"].plot(time, np.rad2deg(disturbances[1, :]), "k", label="Wind direction")
     axs["wind_direction"].set_xlabel("Time (s)")
     axs["wind_direction"].set_ylabel("Direction (deg)")
     axs["wind_direction"].grid()
@@ -565,9 +547,7 @@ def test_ship() -> None:
     axs["current_speed"].grid()
     axs["current_speed"].legend()
 
-    axs["current_direction"].plot(
-        time, np.rad2deg(disturbances[3, :]), "k", label="Current direction"
-    )
+    axs["current_direction"].plot(time, np.rad2deg(disturbances[3, :]), "k", label="Current direction")
     axs["current_direction"].set_xlabel("Time (s)")
     axs["current_direction"].set_ylabel("Direction (deg)")
     axs["current_direction"].grid()
@@ -575,9 +555,7 @@ def test_ship() -> None:
 
     # Inputs
     if n_u == 3:
-        fig = plt.figure(
-            figsize=(mf.cm2inch(fig_size[0]), mf.cm2inch(fig_size[1])), dpi=dpi_value
-        )
+        fig = plt.figure(figsize=(mf.cm2inch(fig_size[0]), mf.cm2inch(fig_size[1])), dpi=dpi_value)
         axs = fig.subplot_mosaic(
             [
                 ["X"],
@@ -603,7 +581,7 @@ def test_ship() -> None:
         axs["N"].grid()
         axs["N"].legend()
 
-    plt.show()
+    plt.show(block=False)
 
 
 def test_config_from_dict_missing_model_uses_default():
@@ -716,30 +694,10 @@ def test_config_round_trip_planning_example():
             assert "csog_state" in round_trip_dict
             assert len(round_trip_dict["csog_state"]) == 4
             # COG is converted from deg to rad and back, so check approximate equality
-            assert (
-                abs(
-                    round_trip_dict["csog_state"][0] - ship_config_dict["csog_state"][0]
-                )
-                < 1e-6
-            )
-            assert (
-                abs(
-                    round_trip_dict["csog_state"][1] - ship_config_dict["csog_state"][1]
-                )
-                < 1e-6
-            )
-            assert (
-                abs(
-                    round_trip_dict["csog_state"][2] - ship_config_dict["csog_state"][2]
-                )
-                < 1e-6
-            )
-            assert (
-                abs(
-                    round_trip_dict["csog_state"][3] - ship_config_dict["csog_state"][3]
-                )
-                < 1e-6
-            )
+            assert abs(round_trip_dict["csog_state"][0] - ship_config_dict["csog_state"][0]) < 1e-6
+            assert abs(round_trip_dict["csog_state"][1] - ship_config_dict["csog_state"][1]) < 1e-6
+            assert abs(round_trip_dict["csog_state"][2] - ship_config_dict["csog_state"][2]) < 1e-6
+            assert abs(round_trip_dict["csog_state"][3] - ship_config_dict["csog_state"][3]) < 1e-6
 
         if "goal_csog_state" in ship_config_dict:
             assert "goal_csog_state" in round_trip_dict
@@ -758,9 +716,7 @@ def test_config_round_trip_planning_example():
         assert config_round_trip.controller is not None
         assert config_round_trip.sensors is not None
         assert config_round_trip.tracker is not None
-        assert (config_round_trip.guidance is not None) or (
-            config_round_trip.colav is not None
-        )
+        assert (config_round_trip.guidance is not None) or (config_round_trip.colav is not None)
 
 
 if __name__ == "__main__":

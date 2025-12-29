@@ -1,29 +1,29 @@
+"""integrators.py.
+
+Summary:
+Contains ODE integrator functionality used in the simulator.
+
+Author: Trym Tengesdal
 """
-    integrators.py
 
-    Summary:
-        Contains ODE integrator functionality used in the simulator.
+from collections.abc import Callable
+from typing import Any
 
-    Author: Trym Tengesdal
-"""
-
-from typing import Any, Callable, Optional
-
-import colav_simulator.common.math_functions as mf
 import numpy as np
 
+import colav_simulator.common.math_functions as mf
 
-def erk4_integration_step(f: Callable, b: Callable, x: np.ndarray, u: np.ndarray, w: Optional[Any], dt: float) -> np.ndarray:
-    """
-    Summary:
-        Performs a (saturated) single step of a 4th order Runge-Kutta integration scheme.
+
+def erk4_integration_step(f: Callable, b: Callable, x: np.ndarray, u: np.ndarray, w: Any | None, dt: float) -> np.ndarray:
+    """Performs a (saturated) single step of a 4th order Runge-Kutta integration scheme.
 
     Args:
         f (Callable): Function to be integrated.
-        b (Callable): Bounds of states and inputs considered in the model dynamics to be integrated.
+        b (Callable): Bounds of states and inputs considered in the model dynamics to
+            be integrated.
         x (np.ndarray): State vector.
         u (np.ndarray): Input vector.
-        w (Optional[Any]): Disturbance data.
+        w (Any | None): Disturbance data.
         dt (float): Time step.
 
     Returns:
@@ -39,17 +39,16 @@ def erk4_integration_step(f: Callable, b: Callable, x: np.ndarray, u: np.ndarray
     return x_next
 
 
-def euler_integration_step(f: Callable, b: Callable, x: np.ndarray, u: np.ndarray, w: Optional[Any], dt: float) -> np.ndarray:
-    """
-    Summary:
-        Performs a (saturated) single step of a Euler integration scheme.
+def euler_integration_step(f: Callable, b: Callable, x: np.ndarray, u: np.ndarray, w: Any | None, dt: float) -> np.ndarray:
+    """Performs a (saturated) single step of a Euler integration scheme.
 
     Args:
         f (Callable): Function to be integrated.
-        b (Callable): Bounds of states and inputs considered in the model dynamics to be integrated.
+        b (Callable): Bounds of states and inputs considered in the model dynamics to
+            be integrated.
         x (np.ndarray): State vector.
         u (np.ndarray): Input vector.
-        w (Optional[Any]): Disturbance data.
+        w (Any | None): Disturbance data.
         dt (float): Time step.
 
     Returns:

@@ -1,17 +1,13 @@
-"""
-    environment.py
+"""Wraps the colav-simulator for use with Gymnasium.
 
-    Summary:
-        This module wraps the colav-simulator for use with Gymnasium.
-        To add your own custom observation or action type, see their respective files observation.py and action.py.
-
-    Author: Trym Tengesdal
+Author: Trym Tengesdal
 """
 
 import pathlib
-import time as timelib
-import tracemalloc
-from typing import Any, List, Optional, Tuple
+
+import gymnasium as gym
+import numpy as np
+import seacharts.enc as senc
 
 import colav_simulator.core.ship as cs_ship
 import colav_simulator.core.stochasticity as stoch
@@ -21,16 +17,14 @@ import colav_simulator.gym.reward as rw
 import colav_simulator.scenario_config as sc
 import colav_simulator.scenario_generator as sg
 import colav_simulator.simulator as cssim
-import gymnasium as gym
-import numpy as np
-import seacharts.enc as senc
 
 
 class COLAVEnvironment(gym.Env):
-    """
-    An environment for performing ship collision-free planning tasks.
+    """An environment for performing ship collision-free planning tasks.
 
-    The environment is centered on the own-ship (single-agent), and consists of a maritime scenario with possibly multiple other vessels and grounding hazards from ENC data.
+    The environment is centered on the own-ship (single-agent), and consists of
+    a maritime scenario with possibly multiple other vessels and grounding hazards
+    from ENC data.
     """
 
     metadata = {"render_modes": ["human", "rgb_array", "none"], "render_fps": 30, "video.frames_per_second": 30}
@@ -39,50 +33,61 @@ class COLAVEnvironment(gym.Env):
     scenario_config: sc.ScenarioConfig
     scenario_data_tup: tuple
 
-    def __init__(
+    def __init__(  # noqa: PLR0915
         self,
-        simulator_config: Optional[cssim.Config] = None,
-        scenario_generator_config: Optional[sg.Config] = None,
-        scenario_config: Optional[sc.ScenarioConfig | pathlib.Path] = None,
-        scenario_file_folder: Optional[pathlib.Path | List[pathlib.Path]] = None,
-        reload_map: Optional[bool] = True,
-        rewarder_class: Optional[rw.IReward] = rw.Rewarder,
-        rewarder_kwargs: Optional[dict] = {},
-        action_type: Optional[str] = None,
-        action_type_class: Optional[csgym_action.ActionType] = None,
-        action_kwargs: Optional[dict] = {},
-        action_sample_time: Optional[float] = None,
-        observation_type: Optional[dict | str] = None,
-        observation_kwargs: Optional[dict] = {},
-        render_mode: Optional[str] = "rgb_array",
-        render_update_rate: Optional[float] = None,
-        verbose: Optional[bool] = True,
-        show_loaded_scenario_data: Optional[bool] = False,
-        shuffle_loaded_scenario_data: Optional[bool] = False,
-        max_number_of_episodes: Optional[int] = None,
-        merge_loaded_scenario_episodes: Optional[bool] = False,
-        identifier: Optional[int | str] = "COLAVEnv",
-        seed: Optional[int] = None,
-        **kwargs,
+        simulator_config: cssim.Config | None = None,
+        scenario_generator_config: sg.Config | None = None,
+        scenario_config: sc.ScenarioConfig | pathlib.Path | None = None,
+        scenario_file_folder: pathlib.Path | list[pathlib.Path] | None = None,
+        reload_map: bool | None = True,
+        rewarder_class: rw.IReward | None = rw.Rewarder,
+        rewarder_kwargs: dict | None = None,
+        action_type: str | None = None,
+        action_type_class: csgym_action.ActionType | None = None,
+        action_kwargs: dict | None = None,
+        action_sample_time: float | None = None,
+        observation_type: dict | str | None = None,
+        observation_kwargs: dict | None = None,
+        render_mode: str | None = "rgb_array",
+        render_update_rate: float | None = None,
+        verbose: bool | None = True,
+        show_loaded_scenario_data: bool | None = False,
+        shuffle_loaded_scenario_data: bool | None = False,
+        max_number_of_episodes: int | None = None,
+        merge_loaded_scenario_episodes: bool | None = False,
+        identifier: int | str | None = "COLAVEnv",
+        seed: int | None = None,
     ) -> None:
         """Initializes the environment.
-        Note that the scenario config object takes precedence over the scenario config file, which again takes precedence over the scenario file list.
 
-        For action and observation types defined under `gym/action` and `gym/observation`, specify usage of these by providing the class name as a lower snake case string with the `action_type` and `observation_type` parameters.
+        Note that the scenario config object takes precedence over the scenario
+        config file, which again takes precedence over the scenario file list.
 
-        For external action types and the reward class you want to use, provide the class as an argument with the `action_type_class` and `rewarder_class` parameters, respectively.
+        For action and observation types defined under `gym/action` and
+        `gym/observation`, specify usage of these by providing the class name as
+        a lower snake case string with the `action_type` and `observation_type`
+        parameters.
+
+        For external action types and the reward class you want to use, provide
+        the class as an argument with the `action_type_class` and `rewarder_class`
+        parameters, respectively.
 
 
         Args:
             simulator_config (Optional[cssim.Config]): Simulator configuration.
             scenario_generator_config (Optional[sg.Config]): Scenario generator configuration.
-            scenario_config (Optional[sc.ScenarioConfig | Path]): Scenario configuration, either config object or path.
-            scenario_file_folder (Optional[List[Path] | Path): Folder path(s) to scenario episode files.
-            reload_map (Optional[bool]): Whether to reload the scenario ENC map. NOTE: Might cause issues with vectorized environments due to race conditions.
+            scenario_config (Optional[sc.ScenarioConfig | Path]): Scenario
+                configuration, either config object or path.
+            scenario_file_folder (Optional[List[Path] | Path): Folder path(s) to
+                scenario episode files.
+            reload_map (Optional[bool]): Whether to reload the scenario ENC map.
+                NOTE: Might cause issues with vectorized environments due to race
+                conditions.
             rewarder_class (Optional[rw.IReward]): Rewarder class.
             rewarder_kwargs (Optional[dict]): Rewarder keyword arguments.
             action_type (Optional[str]): Action type.
-            action_type_class (Optional[csgym_action.ActionType]): Action type class. Typically used for externally developed action types.
+            action_type_class (Optional[csgym_action.ActionType]): Action type
+                class. Typically used for externally developed action types.
             action_kwargs (Optional[dict]): Keyword arguments passed to the action type upon construction.
             action_sample_time (Optional[float]): Action sample time, i.e. the time between each applied action.
             observation_type (Optional[dict | str]): Observation type.
@@ -92,15 +97,23 @@ class COLAVEnvironment(gym.Env):
             verbose (Optional[bool]): Wheter to print debugging info or not.
             show_loaded_scenario_data (Optional[bool]): Whether to show the loaded scenario data or not.
             shuffle_loaded_scenario_data (Optional[bool]): Whether to shuffle the loaded scenario data or not.
-            max_number_of_episodes (Optional[int]): Maximum number of episodes to generate/load. Defaults to none (i.e. no limit).
-            merge_loaded_scenario_episodes (Optional[bool]): Whether to merge multiple loaded scenario episodes into one scenario or not.
+            max_number_of_episodes (Optional[int]): Maximum number of episodes
+                to generate/load. Defaults to none (i.e. no limit).
+            merge_loaded_scenario_episodes (Optional[bool]): Whether to merge
+                multiple loaded scenario episodes into one scenario or not.
             identifier (Optional[int | str]): Identifier for the environment.
             seed (Optional[int]): Seed for the random number generator.
         """
+        if observation_kwargs is None:
+            observation_kwargs = {}
+        if action_kwargs is None:
+            action_kwargs = {}
+        if rewarder_kwargs is None:
+            rewarder_kwargs = {}
         super().__init__()
-        assert (
-            scenario_config is not None or scenario_file_folder is not None
-        ), "Either scenario config or scenario file folder must be provided!"
+        if scenario_config is None and scenario_file_folder is None:
+            msg = "Either scenario config or scenario file folder must be provided!"
+            raise ValueError(msg)
 
         # Dummy spaces, must be overwritten by _define_spaces after call to reset the environment
         self.action_kwargs = action_kwargs
@@ -112,17 +125,15 @@ class COLAVEnvironment(gym.Env):
         self.observation_type = None
         self.simulator_config: cssim.Config = simulator_config
         self.simulator: cssim.Simulator = cssim.Simulator(config=simulator_config)
-        self.scenario_generator: sg.ScenarioGenerator = sg.ScenarioGenerator(
-            config=scenario_generator_config, seed=seed
-        )
-        self.scenario_config: Optional[sc.ScenarioConfig | pathlib.Path] = scenario_config
-        self.scenario_file_folder: Optional[pathlib.Path] = scenario_file_folder
-        self.scenario_data_tup: Optional[tuple] = None
+        self.scenario_generator: sg.ScenarioGenerator = sg.ScenarioGenerator(config=scenario_generator_config, seed=seed)
+        self.scenario_config: sc.ScenarioConfig | pathlib.Path | None = scenario_config
+        self.scenario_file_folder: pathlib.Path | None = scenario_file_folder
+        self.scenario_data_tup: tuple | None = None
         self.reload_map: bool = reload_map
         self._has_init_generated: bool = False
-        self.max_number_of_episodes: Optional[int] = max_number_of_episodes
+        self.max_number_of_episodes: int | None = max_number_of_episodes
 
-        self._seed: Optional[int] = seed
+        self._seed: int | None = seed
         self.env_id = identifier
         self.done = False
         self.steps: int = 0
@@ -131,7 +142,7 @@ class COLAVEnvironment(gym.Env):
         self.terminal_info: dict = {}
         self.episodes: int = 0
         self.n_episodes: int = 0
-        self.ownship: Optional[cs_ship.Ship] = None
+        self.ownship: cs_ship.Ship | None = None
         self.render_mode = render_mode
         self.render_update_rate = render_update_rate
         self.verbose: bool = verbose
@@ -153,7 +164,9 @@ class COLAVEnvironment(gym.Env):
                 max_number_of_episodes=self.max_number_of_episodes,
             )
 
-        assert isinstance(self.scenario_config, sc.ScenarioConfig), "Scenario config not initialized properly!"
+        if not isinstance(self.scenario_config, sc.ScenarioConfig):
+            msg = "Scenario config not initialized properly!"
+            raise ValueError(msg)
         self._has_init_generated = True
         (scenario_episode_list, scenario_enc) = self.scenario_data_tup
         episode_data = scenario_episode_list[0]
@@ -172,9 +185,7 @@ class COLAVEnvironment(gym.Env):
         self.observation_type_cfg = (
             observation_type if observation_type is not None else self.scenario_config.rl.observation_type
         )
-        self.dt_action = (
-            action_sample_time if action_sample_time is not None else self.scenario_config.rl.action_sample_time
-        )
+        self.dt_action = action_sample_time if action_sample_time is not None else self.scenario_config.rl.action_sample_time
 
         self.rewarder_class = rewarder_class
         self.rewarder_kwargs = rewarder_kwargs
@@ -187,7 +198,7 @@ class COLAVEnvironment(gym.Env):
 
         self._define_spaces()
 
-    def close(self):
+    def close(self) -> None:
         """Closes the environment. To be called after usage."""
         self.done = True
         if self.simulator.visualizer is not None:
@@ -196,15 +207,17 @@ class COLAVEnvironment(gym.Env):
 
     def _define_spaces(self) -> None:
         """Defines the action and observation spaces."""
-        assert self.scenario_config is not None, "Scenario config not initialized!"
+        if self.scenario_config is None:
+            msg = "Scenario config not initialized!"
+            raise ValueError(msg)
 
         if self.action_type is not None and self.observation_type is not None:
             return
 
         self.dt_action = self.dt_action if self.dt_action is not None else self.simulator.dt
-        assert (
-            self.dt_action % self.simulator.dt == 0.0
-        ), "Action sampling time must be a multiple of simulator time step!"
+        if self.dt_action % self.simulator.dt != 0.0:
+            msg = "Action sampling time must be a multiple of simulator time step!"
+            raise ValueError(msg)
 
         if self.action_type_class is None:
             self.action_type = csgym_action.action_factory(
@@ -214,9 +227,7 @@ class COLAVEnvironment(gym.Env):
             self.action_type = self.action_type_class(self, sample_time=self.dt_action, **self.action_kwargs)
         self.action_space = self.action_type.space()
 
-        self.observation_type = csgym_obs.observation_factory(
-            self, self.observation_type_cfg, **self.observation_kwargs
-        )
+        self.observation_type = csgym_obs.observation_factory(self, self.observation_type_cfg, **self.observation_kwargs)
         self.observation_space = self.observation_type.space()
 
     def _is_terminated(self) -> bool:
@@ -237,17 +248,18 @@ class COLAVEnvironment(gym.Env):
 
     def _load(
         self,
-        scenario_file_folder: pathlib.Path | List[pathlib.Path],
+        scenario_file_folder: pathlib.Path | list[pathlib.Path],
         reload_map: bool = True,
         show: bool = False,
         shuffle: bool = False,
         merge_loaded_scenario_episodes: bool = False,
-        max_number_of_episodes: Optional[int] = None,
+        max_number_of_episodes: int | None = None,
     ) -> None:
         """Load scenario episodes from files or a folder.
 
         Args:
-            scenario_file_folder (pathlib.Path | List[pathlib.Path]): Folder path(s) where all episodes for the scenario(s) are found.
+            scenario_file_folder (pathlib.Path | List[pathlib.Path]): Folder
+                path(s) where all episodes for the scenario(s) are found.
             reload_map (bool): Whether to reload the scenario(s) map.
             show (bool): Whether to show the scenario(s) data or not.
             shuffle (bool): Whether to shuffle the scenario(s) episode data or not.
@@ -272,14 +284,15 @@ class COLAVEnvironment(gym.Env):
 
     def _generate(
         self,
-        scenario_config: Optional[sc.ScenarioConfig | pathlib.Path] = None,
-        reload_map: Optional[bool] = None,
-        max_number_of_episodes: Optional[int] = None,
+        scenario_config: sc.ScenarioConfig | pathlib.Path | None = None,
+        reload_map: bool | None = None,
+        max_number_of_episodes: int | None = None,
     ) -> None:
         """Generate new scenario from the input configuration.
 
         Args:
-            scenario_config (Optional[sm.ScenarioConfig | pathlib.Path]): Scenario configuration or path to scenario config file.
+            scenario_config (Optional[sc.ScenarioConfig | pathlib.Path]): Scenario
+                configuration or path to scenario config file.
             reload_map (bool): Whether to reload the scenario map.
             max_number_of_episodes (Optional[int]): Maximum number of episodes to generate.
         """
@@ -339,7 +352,7 @@ class COLAVEnvironment(gym.Env):
         }
         return self.last_info
 
-    def seed(self, seed: Optional[int] = None, options: Optional[dict] = None) -> None:
+    def seed(self, seed: int | None = None, options: dict | None = None) -> None:
         """Re-seed the environment. This is useful for reproducibility.
 
         Args:
@@ -353,10 +366,14 @@ class COLAVEnvironment(gym.Env):
 
     def reset(
         self,
-        seed: Optional[int] = None,
-        options: Optional[dict] = None,
-    ) -> Tuple[csgym_obs.Observation, dict]:
-        """Reset the environment to a new scenario episode. If a scenario config or config file is provided, a new scenario is generated. Otherwise, the next episode of the current scenario is used, if any.
+        seed: int | None = None,
+        options: dict | None = None,
+    ) -> tuple[csgym_obs.Observation, dict]:
+        """Reset the environment to a new scenario episode.
+
+        If a scenario config or config file is provided, a new scenario is
+        generated. Otherwise, the next episode of the current scenario is used,
+        if any.
 
         Args:
             seed (Optional[int]): Seed for the random number generator.
@@ -401,7 +418,9 @@ class COLAVEnvironment(gym.Env):
                     max_number_of_episodes=self.max_number_of_episodes,
                 )
 
-        assert self.scenario_config is not None, "Scenario config not initialized!"
+        if self.scenario_config is None:
+            msg = "Scenario config not initialized!"
+            raise ValueError(msg)
         (scenario_episode_list, scenario_enc) = self.scenario_data_tup
 
         episode_data = scenario_episode_list.pop(0)
@@ -429,14 +448,19 @@ class COLAVEnvironment(gym.Env):
         self.episodes += 1  # Episodes performed
         return obs, info
 
-    def step(self, action: csgym_action.Action) -> Tuple[csgym_obs.Observation, float, bool, bool, dict]:
-        """Perform an action in the environment and return the new observation, the reward, whether the task is terminated, and additional information.
+    def step(self, action: csgym_action.Action) -> tuple[csgym_obs.Observation, float, bool, bool, dict]:
+        """Perform an action in the environment.
+
+        Returns the new observation, the reward, whether the task is terminated,
+        and additional information.
 
         Args:
             action (Action): Action vector applied by the agent
 
         Returns:
-            Tuple[np.ndarray, float, bool, bool, dict]: New observation, reward, whether the task is terminated, whether the state is truncated, and additional information.
+            Tuple[np.ndarray, float, bool, bool, dict]: New observation, reward,
+                whether the task is terminated, whether the state is truncated,
+                and additional information.
         """
         self.dt_action = self.action_type.get_sampling_time()
         n_steps_between_actions = int(self.dt_action / self.simulator.dt)
@@ -490,7 +514,7 @@ class COLAVEnvironment(gym.Env):
                 remote_actor=True,
             )
 
-    def render(self):
+    def render(self) -> np.ndarray | None:
         """Renders the environment in 2D."""
         img = None
         # t_now = time.time()
@@ -555,7 +579,7 @@ class COLAVEnvironment(gym.Env):
 
     @property
     def relevant_grounding_hazards_as_union(self) -> list:
-        """The nearby ownship grounding hazards in the environment as a single multipolygon"""
+        """The nearby ownship grounding hazards in the environment as a single multipolygon."""
         return self.simulator.relevant_grounding_hazards_as_union
 
     @property

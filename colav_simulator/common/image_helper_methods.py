@@ -1,33 +1,31 @@
-"""
-    image_helper_methods.py
+"""image_helper_methods.py.
 
-    Summary:
-        Contains helper methods for image processing.
+Summary:
+Contains helper methods for image processing.
 
-    Author: Trym Tengesdal
+Author: Trym Tengesdal
 """
 
 import io
 import time
 from pathlib import Path
-from typing import Tuple
 
-import colav_simulator.common.math_functions as mf
 import cv2
-import matplotlib
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import skimage.morphology as ski_morph
 import skimage.util as ski_util
 from matplotlib import animation, gridspec
-from PIL import Image, ImageOps
+
+import colav_simulator.common.math_functions as mf
 
 # Depending on your OS, you might need to change these paths
 plt.rcParams["animation.convert_path"] = "/usr/bin/convert"
 plt.rcParams["animation.ffmpeg_path"] = "/usr/bin/ffmpeg"
 
 
-def mplfig2np(fig: matplotlib.figure.Figure) -> np.ndarray:
+def mplfig2np(fig: mpl.figure.Figure) -> np.ndarray:
     """Convert a matplotlib figure to a numpy array.
 
     Args:
@@ -47,7 +45,20 @@ def mplfig2np(fig: matplotlib.figure.Figure) -> np.ndarray:
     return im
 
 
-def save_frames_as_gif(frame_list: list, filename: Path, verbose: bool = False, crop: bool = True) -> None:
+def save_frames_as_gif(
+    frame_list: list,
+    filename: Path,
+    verbose: bool = False,
+    crop: bool = True,  # noqa: ARG001
+) -> None:
+    """Save frames as a GIF animation.
+
+    Args:
+        frame_list (list): List of frames to save.
+        filename (Path): Path to save the GIF file.
+        verbose (bool): Whether to print progress. Defaults to False.
+        crop (bool): Whether to crop frames. Defaults to True.
+    """
     # if crop:
     #     cropped_frame_list = []
     #     for frame in frame_list:
@@ -64,11 +75,11 @@ def save_frames_as_gif(frame_list: list, filename: Path, verbose: bool = False, 
     fig.tight_layout()
     patch = plt.imshow(frame_list[0])
 
-    def init():
+    def init() -> tuple:
         patch.set_data(frame_list[0])
         return (patch,)
 
-    def animate(i):
+    def animate(i: int) -> tuple:
         patch.set_data(frame_list[i])
         return (patch,)
 
@@ -86,7 +97,7 @@ def save_frames_as_gif(frame_list: list, filename: Path, verbose: bool = False, 
         print(f"Saved gif to {filename}")
 
 
-def find_edges(img: np.ndarray, *, bw_threshold: int = 150, limits: Tuple[float, float] = (0.2, 0.15)) -> list:
+def find_edges(img: np.ndarray, *, bw_threshold: int = 150, limits: tuple[float, float] = (0.2, 0.15)) -> list:  # noqa: D103
     mask = img < bw_threshold
     edges = []
     for axis in (1, 0):
@@ -135,7 +146,7 @@ def preprocess_image(
     return erosion[crop_side:-crop_side, crop_side:-crop_side]
 
 
-def adapt_edges(edges: list, *, height: int, width: int) -> Tuple[Tuple[int, int], Tuple[int, int]]:
+def adapt_edges(edges: list, *, height: int, width: int) -> tuple[tuple[int, int], tuple[int, int]]:
     """Adapt the edges to fit the image.
 
     Args:
@@ -172,11 +183,11 @@ def remove_whitespace(img: np.ndarray) -> np.ndarray:
     return image_cropped
 
 
-def gray_to_rgb(img):
+def gray_to_rgb(img: np.ndarray) -> np.ndarray:  # noqa: D103
     return np.repeat(img, 3, 2)
 
 
-def create_simulation_image_segmentation_mask(img: np.ndarray) -> np.ndarray:
+def create_simulation_image_segmentation_mask(img: np.ndarray) -> np.ndarray:  # noqa: PLR0912, PLR0915
     """Thresholds the image from a simulation liveplot to create a mask for distinct features/edges in the image.
 
     Args:
@@ -242,12 +253,8 @@ def create_simulation_image_segmentation_mask(img: np.ndarray) -> np.ndarray:
                 mask_level_j = threshold_j
                 if j == 1:
                     # mask_level_j = cv2.bilateralFilter(threshold_j, 8, 75, 75).astype(np.float16)
-                    mask_level_j = ski_morph.erosion(mask_level_j.astype(np.uint8), ski_morph.disk(2)).astype(
-                        np.float16
-                    )
-                    mask_level_j = ski_morph.dilation(mask_level_j.astype(np.uint8), ski_morph.disk(2)).astype(
-                        np.float16
-                    )
+                    mask_level_j = ski_morph.erosion(mask_level_j.astype(np.uint8), ski_morph.disk(2)).astype(np.float16)
+                    mask_level_j = ski_morph.dilation(mask_level_j.astype(np.uint8), ski_morph.disk(2)).astype(np.float16)
                 elif j == 2:
                     mask_level_j = cv2.medianBlur(threshold_j, 5).astype(np.float16)
 
@@ -263,12 +270,11 @@ def create_simulation_image_segmentation_mask(img: np.ndarray) -> np.ndarray:
                     ax.axes.get_xaxis().set_visible(False)
                     ax.axes.get_yaxis().set_visible(False)
 
-            contours, hierarchy = cv2.findContours(
+            contours, _hierarchy = cv2.findContours(
                 mask_imgs[0].astype(np.uint8), cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
             )
             land_mask_edges = (
-                cv2.drawContours(np.zeros_like(mask_imgs[0], dtype=np.uint8), contours, -1, 255, 1).astype(np.int16)
-                / 255
+                cv2.drawContours(np.zeros_like(mask_imgs[0], dtype=np.uint8), contours, -1, 255, 1).astype(np.int16) / 255
             )
             # ax.imshow(land_mask_edges.astype(np.uint8), cmap="gray")
 
@@ -294,7 +300,6 @@ def create_simulation_image_segmentation_mask(img: np.ndarray) -> np.ndarray:
 
 
 if __name__ == "__main__":
-
     # filename_in = "input.png"
     # filename_out = "output.png"
 

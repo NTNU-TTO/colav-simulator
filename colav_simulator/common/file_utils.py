@@ -1,20 +1,19 @@
-"""
-    file_utils.py
+"""file_utils.py.
 
-    Summary:
-        Contains general non-math related utility functions.
+Summary:
+Contains general non-math related utility functions.
 
-    Author: Trym Tengesdal
+Author: Trym Tengesdal
 """
 
 from pathlib import Path
-from typing import Optional, Tuple
+
+import pandas as pd
+import yaml
 
 import colav_simulator.common.map_functions as mapf
 import colav_simulator.common.miscellaneous_helper_methods as mhm
 import colav_simulator.common.vessel_data as vd
-import pandas as pd
-import yaml
 
 
 def read_yaml_into_dict(file_name: Path) -> dict:
@@ -33,6 +32,7 @@ def read_yaml_into_dict(file_name: Path) -> dict:
 
 def delete_files_in_folder(folder: Path) -> None:
     """Deletes all files in the specified folder, but not the folder itself.
+
     Does nothing if the folder does not exist.
 
     Args:
@@ -48,23 +48,28 @@ def delete_files_in_folder(folder: Path) -> None:
 
 def read_ais_data(
     ais_path: Path,
-    ship_info_path: Optional[Path] = None,
+    ship_info_path: Path | None = None,
     utm_zone: int = 33,
-    map_origin_enu: Optional[Tuple[float, float]] = None,
-    map_size: Optional[Tuple[float, float]] = None,
+    map_origin_enu: tuple[float, float] | None = None,
+    map_size: tuple[float, float] | None = None,
     sample_interval: float = 1.0,
 ) -> dict:
-    """
-    Reads the ais data file specified by the ais_path parameter and creates a list of VesselData instances for
-    each vessel recorded in the data. The list of MMSI`s and map origin/reference (in ENU) are also returned.
+    """Reads the ais data file and creates a list of VesselData instances.
+
+    For each vessel recorded in the data. The list of MMSI`s and map
+    origin/reference (in ENU) are also returned.
 
     Args:
-    - ais_path (Path): Path to the ais data file.
-    - ship_info_path (Path): Path to the ship information data file.
-    - utm_zone (int): UTM zone of the coordinate system.
-    - map_origin_enu (Optional[Tuple[float, float]]): Origin of the coordinate system in ENU coordinates.
-    - map_size: (Optional[Tuple[float, float]]): Size of the considered area, relative to the origin, ENU coordinates.
-    - sample_interval (float): Sampling interval used for interpolation on the vessel data.
+        ais_path (Path): Path to the ais data file.
+        ship_info_path (Path | None): Path to the ship information data file.
+            Defaults to None.
+        utm_zone (int): UTM zone of the coordinate system. Defaults to 33.
+        map_origin_enu (tuple[float, float] | None): Origin of the coordinate
+            system in ENU coordinates. Defaults to None.
+        map_size (tuple[float, float] | None): Size of the considered area,
+            relative to the origin, ENU coordinates. Defaults to None.
+        sample_interval (float): Sampling interval used for interpolation on
+            the vessel data. Defaults to 1.0.
 
     Returns:
         dict: Dictionary containing:
@@ -72,8 +77,10 @@ def read_ais_data(
         - List of vessel MMSI
         - Reference/origin of the local coordinate system in ENU coordinates.
         - Timespan of the data.
-        - Tuple of size_x, size_y of the map area (+ buffer) containing the data, referenced to the origin.
-        - Extent of the map area (+ buffer) containing the data, in lat/lon coordinates ([lat_min, lat_max, lon_min, lon_max])
+        - Tuple of size_x, size_y of the map area (+ buffer) containing the
+            data, referenced to the origin.
+        - Extent of the map area (+ buffer) containing the data, in lat/lon
+            coordinates ([lat_min, lat_max, lon_min, lon_max]).
     """
     output = {}
     vessels = []

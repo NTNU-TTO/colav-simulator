@@ -1,17 +1,15 @@
-"""
-Shows how the radar sensor can be used to generate measurements for a single ownship and a single dynamic obstacle.
-"""
+"""Shows how the radar sensor can be used to generate measurements for a single ownship and a single dynamic obstacle."""
 
-import colav_simulator.common.map_functions as mapf
-import colav_simulator.common.miscellaneous_helper_methods as mhm
-import colav_simulator.core.sensing as sensing
-import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 
+import colav_simulator.common.map_functions as mapf
+import colav_simulator.common.miscellaneous_helper_methods as mhm
+from colav_simulator.core import sensing
 
-def test_radar() -> None:
 
+def test_radar() -> None:  # noqa: PLR0915
+    """Test the radar sensor."""
     rparams = sensing.RadarParams()
     rparams.generate_clutter = True
     rparams.measurement_rate = 0.5
@@ -26,8 +24,7 @@ def test_radar() -> None:
         (0, np.array([50.0, 0.0, 0.0, 2.0]), 10.0, 3.0)
     ]  # dynamic obstacle info on the form (ID, state, length, width)
 
-    matplotlib.use("TkAgg")
-    fig1, ax1 = plt.subplots()
+    _, ax1 = plt.subplots()
     ax1.set_aspect("equal")
     ax1.set_xlabel("East [m]")
     ax1.set_ylabel("North [m]")
@@ -136,7 +133,7 @@ def test_radar() -> None:
         true_do_states = [(0, do_state, 10.0, 3.0)]
 
     radar.reset(seed=0)
-    plt.show()
+    plt.show(block=False)
 
 
 if __name__ == "__main__":

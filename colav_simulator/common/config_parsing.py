@@ -1,37 +1,41 @@
-"""
-    config_parsing.py
+"""config_parsing.py.
 
-    Summary:
-        Contains functionality for reading and validating configuration files from schemas.
+Summary:
+Contains functionality for reading and validating configuration files from schemas.
 
-    Author: Trym Tengesdal
+Author: Trym Tengesdal
 """
+
 from dataclasses import is_dataclass
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any
 
-import colav_simulator.common.file_utils as futils
 import dacite
 from cerberus import Validator
 
+import colav_simulator.common.file_utils as futils
 
-def extract(data_class: Any, config_file: Path, config_schema: Path, converter: Optional[dict] = None, **kwargs) -> Any:
-    """Extracts configuration settings from a configuration file, and converts them to a dataclass.
-    Validation is performed using the input schema.
+
+def extract(data_class: Any, config_file: Path, config_schema: Path, converter: dict | None = None, **kwargs) -> Any:  # noqa: ARG001
+    """Extracts configuration settings from a configuration file.
+
+    Converts them to a dataclass. Validation is performed using the input
+    schema.
 
     Args:
         data_class (Any): Dataclass to convert the settings to.
         config_file (Path): Path to the configuration file.
         config_schema (Path): Path to the schema used for config validation.
-        converter (Optional[dict]): Dictionary specifying data types to convert to in the settings to the dataclass. Defaults to None.
+        converter (dict | None): Dictionary specifying data types to convert
+            to in the settings to the dataclass. Defaults to None.
+        **kwargs: Additional keyword arguments.
 
     Returns:
         Any: Configuration settings as a dataclass.
     """
-
     schema = futils.read_yaml_into_dict(config_schema)
 
-    settings = parse(config_file, schema, **kwargs)
+    settings = parse(config_file, schema)
     settings = override(settings, schema, **kwargs)
 
     settings = convert_settings_dict_to_dataclass(data_class, settings, converter)
@@ -39,13 +43,14 @@ def extract(data_class: Any, config_file: Path, config_schema: Path, converter: 
     return settings
 
 
-def convert_settings_dict_to_dataclass(data_class, config_dict: dict, converter: Optional[dict] = None) -> Any:
+def convert_settings_dict_to_dataclass(data_class: type[Any], config_dict: dict, converter: dict | None = None) -> Any:
     """Converts a settings dictionary to a dataclass.
 
     Args:
-        dataclass (Any): Data class to convert to.
+        data_class (type[Any]): Data class to convert to.
         config_dict (dict): Dictionary containing the settings.
-        converter (Optional[dict]): Dictionary specifying data types to convert to in the settings to the dataclass. Defaults to None.
+        converter (dict | None): Dictionary specifying data types to convert
+            to in the settings to the dataclass. Defaults to None.
 
     Returns:
         Any: The dataclass.
@@ -53,7 +58,7 @@ def convert_settings_dict_to_dataclass(data_class, config_dict: dict, converter:
     if not is_dataclass(data_class):
         raise ValueError(f"Desired class is not a dataclass type, its type is {data_class}")
 
-    if hasattr(data_class, "from_dict") and callable(getattr(data_class, "from_dict")):
+    if hasattr(data_class, "from_dict") and callable(data_class.from_dict):
         return data_class.from_dict(config_dict)
 
     if converter is not None:
@@ -67,6 +72,7 @@ def validate(settings: dict, schema: dict) -> None:
 
     Args:
         settings (dict): Configuration settings to validate.
+        schema (dict): Configuration schema to validate against.
 
     Raises:
         ValueError: On empty settings/schema or invalid settings.
@@ -83,7 +89,7 @@ def validate(settings: dict, schema: dict) -> None:
         raise ValueError(f"Cerberus validation Error: {validator.errors}")
 
 
-def extract_valid_sections(schema: dict) -> List[str]:
+def extract_valid_sections(schema: dict) -> list[str]:
     """Extracts the valid main sections from the schema.
 
     Args:
@@ -105,7 +111,7 @@ def extract_valid_sections(schema: dict) -> List[str]:
     return sections
 
 
-def parse(file_name: Path, schema: dict, section: Optional[str] = None) -> dict:
+def parse(file_name: Path, schema: dict, section: str | None = None) -> dict:
     """Parses a configuration file into a dictionary, and validates the settings.
 
     Args:
@@ -128,15 +134,17 @@ def parse(file_name: Path, schema: dict, section: Optional[str] = None) -> dict:
     return section_settings
 
 
-def override(settings: dict, schema: dict, section: Optional[str] = None, **kwargs) -> dict:
+def override(settings: dict, schema: dict, section: str | None = None, **kwargs) -> dict:
     """Overrides settings with keyword arguments, and validates the new values.
 
     NOTE: Assumes only one section in the provided configuration schema.
 
     Args:
         settings (dict): Configuration settings to override.
-        schema (dict): Configuration schema to validate the new settings against.
-        section (Optional[str]): Main section to override. Defaults to None.
+        schema (dict): Configuration schema to validate the new settings
+            against.
+        section (str | None): Main section to override. Defaults to None.
+        **kwargs: Keyword arguments to override settings with.
 
     Raises:
         ValueError: On empty keyword arguments or invalid settings.

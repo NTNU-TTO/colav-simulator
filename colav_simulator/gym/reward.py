@@ -1,20 +1,20 @@
-"""
-    reward.py
+"""reward.py.
 
-    Summary:
-        This file contains some simple rewarder classes for giving reward signals to the agent in the colav-simulator environment.
+Summary:
+This file contains some simple rewarder classes for giving reward signals to the agent in the colav-simulator environment.
 
-    Author: Trym Tengesdal
+Author: Trym Tengesdal
 """
 
 from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
+
+import numpy as np
 
 import colav_simulator.gym.action as csgym_action
 import colav_simulator.gym.observation as csgym_obs
-import numpy as np
 
 if TYPE_CHECKING:
     from colav_simulator.gym.environment import COLAVEnvironment
@@ -30,12 +30,12 @@ class ExistenceRewardParams:
         pass
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "ExistenceRewardParams":  # noqa: D102
         cfg = ExistenceRewardParams()
         cfg.r_exists = config_dict["r_exists"]
         return cfg
 
-    def to_dict(self):
+    def to_dict(self) -> dict:  # noqa: D102
         return {"r_exists": self.r_exists}
 
 
@@ -49,12 +49,12 @@ class CollisionRewardParams:
         pass
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "CollisionRewardParams":  # noqa: D102
         cfg = CollisionRewardParams()
         cfg.r_collision = config_dict["r_collision"]
         return cfg
 
-    def to_dict(self):
+    def to_dict(self) -> dict:  # noqa: D102
         return {"r_collision": self.r_collision}
 
 
@@ -68,18 +68,18 @@ class GroundingRewardParams:
         pass
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "GroundingRewardParams":  # noqa: D102
         cfg = GroundingRewardParams()
         cfg.r_grounding = config_dict["r_grounding"]
         return cfg
 
-    def to_dict(self):
+    def to_dict(self) -> dict:  # noqa: D102
         return {"r_grounding": self.r_grounding}
 
 
 @dataclass
 class DistanceToGoalRewardParams:
-    """Paramters for the distance to goal rewarder."""
+    """Parameters for the distance to goal rewarder."""
 
     r_d2g: float = 1.0
 
@@ -87,12 +87,12 @@ class DistanceToGoalRewardParams:
         pass
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "DistanceToGoalRewardParams":  # noqa: D102
         cfg = DistanceToGoalRewardParams()
         cfg.r_d2g = config_dict["r_d2g"]
         return cfg
 
-    def to_dict(self):
+    def to_dict(self) -> dict:  # noqa: D102
         return {"r_d2g": self.r_d2g}
 
 
@@ -106,7 +106,7 @@ class TrajectoryTrackingRewardParams:
     gamma_chi: float = 1.5  # Course angle error coefficient
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "TrajectoryTrackingRewardParams":  # noqa: D102
         config = TrajectoryTrackingRewardParams()
         config.gamma_r = config_dict["gamma_r"]
         config.gamma_e = config_dict["gamma_e"]
@@ -124,7 +124,7 @@ class StaticColavRewardParams:
     gamma_theta = 10
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "StaticColavRewardParams":  # noqa: D102
         config = StaticColavRewardParams()
 
         config.alpha_x = config_dict["alpha_x"]
@@ -159,7 +159,7 @@ class DynamicColavRewardParams:
     alpha_lambda: list = field(default_factory=lambda: [2, 4])
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "DynamicColavRewardParams":  # noqa: D102
         config = DynamicColavRewardParams()
 
         config.alpha_x = config_dict["alpha_x"]
@@ -184,7 +184,7 @@ class AutopilotReferenceRewardParams:
     speed_coefficient: float = 1.0
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "AutopilotReferenceRewardParams":  # noqa: D102
         cfg = AutopilotReferenceRewardParams()
 
         cfg.course_coefficient = config_dict["course_coefficient"]
@@ -200,7 +200,7 @@ class IReward(ABC):
         self.env = env
 
     @abstractmethod
-    def __call__(self, state: csgym_obs.Observation, action: Optional[csgym_action.Action] = None, **kwargs) -> float:
+    def __call__(self, state: csgym_obs.Observation, action: csgym_action.Action | None = None, **kwargs) -> float:
         """Get the reward for the current state-action pair. Additional arguments can be passed if necessary."""
 
     @abstractmethod
@@ -215,7 +215,7 @@ class Config:
     rewarders: list = field(default_factory=lambda: [ExistenceRewardParams()])
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "Config":  # noqa: D102
         cfg = Config()
         rewarders = config_dict["rewarders"]
         for rewarder in rewarders:
@@ -237,7 +237,7 @@ class Config:
                 cfg.rewarders.append(AutopilotReferenceRewardParams.from_dict(rewarder))
         return cfg
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict:  # noqa: D102
         rewarders = []
         for rewarder in self.rewarders:
             if isinstance(rewarder, ExistenceRewardParams):
@@ -262,39 +262,35 @@ class Config:
 class ExistenceRewarder(IReward):
     """Reward the agent negatively for existing."""
 
-    def __init__(self, env: "COLAVEnvironment", params: Optional[ExistenceRewardParams] = None) -> None:
+    def __init__(self, env: "COLAVEnvironment", params: ExistenceRewardParams | None = None) -> None:
         """Initializes the reward function.
 
         Args:
-            params (ExistenceRewardParams): The reward parameters.
+            env: The COLAV environment.
+            params: The reward parameters.
         """
         super().__init__(env)
         self.last_reward = 0.0
         self.params = params if params else ExistenceRewardParams()
 
-    def __call__(self, state: csgym_obs.Observation, action: Optional[csgym_action.Action] = None, **kwargs) -> float:
+    def __call__(self, state: csgym_obs.Observation, action: csgym_action.Action | None = None, **_kwargs) -> float:  # noqa: ARG002, ARG003
         self.last_reward = -self.params.r_exists
         return self.last_reward
 
-    def get_last_rewards_as_dict(self) -> dict:
+    def get_last_rewards_as_dict(self) -> dict:  # noqa: D102
         return {"r_exists": self.last_reward}
 
 
 class DistanceToGoalRewarder(IReward):
     """Reward the agent for getting closer to the goal."""
 
-    def __init__(self, env: "COLAVEnvironment", params: Optional[DistanceToGoalRewardParams] = None) -> None:
-        """Initializes the reward function.
-
-        Args:
-            params (DistanceToGoalRewardParams): The reward parameters.
-        """
+    def __init__(self, env: "COLAVEnvironment", params: DistanceToGoalRewardParams | None = None) -> None:
         super().__init__(env)
         self.last_reward = 0.0
         self.goal = np.array([0.0, 0.0])
         self.params = params if params else DistanceToGoalRewardParams()
 
-    def __call__(self, state: csgym_obs.Observation, action: Optional[csgym_action.Action] = None, **kwargs) -> float:
+    def __call__(self, state: csgym_obs.Observation, action: csgym_action.Action | None = None, **kwargs) -> float:  # noqa: ARG002, ARG003
         if self.env.ownship.goal_csog_state.size > 0:
             self.goal = self.env.ownship.goal_csog_state[:2]
         elif self.env.ownship.waypoints.size > 1:
@@ -304,14 +300,14 @@ class DistanceToGoalRewarder(IReward):
         self.last_reward = -self.params.r_d2g * float(np.linalg.norm(self.env.ownship.csog_state[:2] - self.goal))
         return self.last_reward
 
-    def get_last_rewards_as_dict(self) -> dict:
+    def get_last_rewards_as_dict(self) -> dict:  # noqa: D102
         return {"r_d2g": self.last_reward}
 
 
 class CollisionRewarder(IReward):
     """Reward the agent negatively for colliding."""
 
-    def __init__(self, env: "COLAVEnvironment", params: Optional[CollisionRewardParams] = None) -> None:
+    def __init__(self, env: "COLAVEnvironment", params: CollisionRewardParams | None = None) -> None:
         """Initializes the reward function.
 
         Args:
@@ -322,7 +318,7 @@ class CollisionRewarder(IReward):
         self.last_reward = 0.0
         self.params = params if params else CollisionRewardParams()
 
-    def __call__(self, state: csgym_obs.Observation, action: Optional[csgym_action.Action] = None, **kwargs) -> float:
+    def __call__(self, state: csgym_obs.Observation, action: csgym_action.Action | None = None, **kwargs) -> float:  # noqa: ARG002, ARG003
         """Reward for the current state-action pair. Calls function from simulator class to get collision or not."""
         collision = self.env.simulator.determine_ship_collision()
         if collision:
@@ -331,25 +327,19 @@ class CollisionRewarder(IReward):
             self.last_reward = 0.0
         return self.last_reward
 
-    def get_last_rewards_as_dict(self) -> dict:
+    def get_last_rewards_as_dict(self) -> dict:  # noqa: D102
         return {"r_collision": self.last_reward}
 
 
 class GroundingRewarder(IReward):
     """Reward the agent negatively for grounding."""
 
-    def __init__(self, env: "COLAVEnvironment", params: Optional[CollisionRewardParams] = None) -> None:
-        """Initializes the reward function.
-
-        Args:
-            env (COLAVEnvironment): The environment
-            params (GroundingRewardParams): The reward parameters.
-        """
+    def __init__(self, env: "COLAVEnvironment", params: GroundingRewardParams | None = None) -> None:
         super().__init__(env)
         self.last_reward = 0.0
         self.params = params if params else GroundingRewardParams()
 
-    def __call__(self, state: csgym_obs.Observation, action: Optional[csgym_action.Action] = None, **kwargs) -> float:
+    def __call__(self, state: csgym_obs.Observation, action: csgym_action.Action | None = None, **kwargs) -> float:  # noqa: ARG002, ARG003
         """Reward for the current state-action pair. Calls function from simulator class to get grounding or not."""
         grounding = self.env.simulator.determine_ship_grounding()
         if grounding:
@@ -358,17 +348,19 @@ class GroundingRewarder(IReward):
             self.last_reward = 0.0
         return self.last_reward
 
-    def get_last_rewards_as_dict(self) -> dict:
+    def get_last_rewards_as_dict(self) -> dict:  # noqa: D102
         return {"r_grounding": self.last_reward}
 
 
 class TrajectoryTrackingRewarder(IReward):
-    """Trajectory tracking rewarder based on Meyer et.al.(2020). Extended to include speed error term.
+    """Trajectory tracking rewarder based on Meyer et.al.(2020).
+
+    Extended to include speed error term.
     NOTE: Both the DynamicColavRewarder and NavigationPathObservation are required
     for this rewarder to function.
     """
 
-    def __init__(self, env: "COLAVEnvironment", params: Optional[TrajectoryTrackingRewardParams] = None) -> None:
+    def __init__(self, env: "COLAVEnvironment", params: TrajectoryTrackingRewardParams | None = None) -> None:
         super().__init__(env)
 
         # Find the NavigationPathObservation object
@@ -383,17 +375,20 @@ class TrajectoryTrackingRewarder(IReward):
         self.params = params
         self.last_reward = 0.0
 
-    def __call__(self, state: csgym_obs.Observation, action: Optional[csgym_action.Action] = None, **kwargs) -> float:
-        assert self.path_observation is not None, "NavigationPathObservation is not part of the observation!"
+    def __call__(self, state: csgym_obs.Observation, _action: csgym_action.Action | None = None, **_kwargs) -> float:
+        """Calculate trajectory tracking reward."""
+        if self.path_observation is None:
+            msg = "NavigationPathObservation is not part of the observation!"
+            raise ValueError(msg)
 
         # If no Dynamic COLAV rewarder, the tradeoff coefficient defaults to 1.0
         tradeoff_coefficient = 1.0
         # Find the DynamicColavRewarder object
         for rewarder in self.env.rewarder.rewarders:
             if isinstance(rewarder, DynamicColavRewarder):
-                assert (
-                    rewarder.last_reward_calculation_time == self.env.simulator.t
-                ), "Dynamic rewarder needs to be called before path rewarder!"
+                if rewarder.last_reward_calculation_time != self.env.simulator.t:
+                    msg = "Dynamic rewarder needs to be called before path rewarder!"
+                    raise ValueError(msg)
                 # Get tradeoff coefficient lambda from dynamic rewarder
                 tradeoff_coefficient = rewarder.tradeoff_coefficient
                 break
@@ -415,15 +410,17 @@ class TrajectoryTrackingRewarder(IReward):
         self.last_reward = tradeoff_coefficient * (path_reward + speed_reward)
         return self.last_reward
 
-    def get_last_rewards_as_dict(self) -> dict:
+    def get_last_rewards_as_dict(self) -> dict:  # noqa: D102
         return {"r_trajectory_tracking": self.last_reward}
 
 
 class StaticColavRewarder(IReward):
-    """Static obstacle COLAV rewarder as implemented in Meyer et.al.(2020)
-    NOTE: The LidarLikeObservation is required as part of the environment observation"""
+    """Static obstacle COLAV rewarder as implemented in Meyer et.al.(2020).
 
-    def __init__(self, env: "COLAVEnvironment", params: Optional[StaticColavRewardParams] = None) -> None:
+    NOTE: The LidarLikeObservation is required as part of the environment observation.
+    """
+
+    def __init__(self, env: "COLAVEnvironment", params: StaticColavRewardParams | None = None) -> None:
         super().__init__(env)
         # Extract the LidarLikeObservation object
         if isinstance(env.observation_type, csgym_obs.DictObservation):
@@ -444,34 +441,37 @@ class StaticColavRewarder(IReward):
 
         self.last_reward = 0.0
 
-    def __call__(self, state: csgym_obs.Observation, action: Optional[csgym_action.Action] = None, **kwargs) -> float:
-        assert self.sensor_suite is not None, "LidarLikeObservation is not part of the observation!"
+    def __call__(self, state: csgym_obs.Observation, action: csgym_action.Action | None = None, **kwargs) -> float:  # noqa: ARG002, ARG003
+        """Reward for the current state-action pair. Calls function from simulator class to get static COLAV reward."""
+        if self.sensor_suite is None:
+            msg = "LidarLikeObservation is not part of the observation!"
+            raise ValueError(msg)
         # Extract current measured distances and sensor angles from LidarLikeObservation object
         dist_measurements = deepcopy(self.sensor_suite.current_dist_measurements)
 
         num = 0
         den = 0
 
-        for distance, angle in zip(dist_measurements, self.sensor_angles):
+        for distance, angle in zip(dist_measurements, self.sensor_angles, strict=False):
             num += self.weighting(angle) * self.closeness_penalty(distance)
             den += self.weighting(angle)
 
         self.last_reward = -num / den
         return self.last_reward
 
-    def get_last_rewards_as_dict(self) -> dict:
+    def get_last_rewards_as_dict(self) -> dict:  # noqa: D102
         return {"r_static_colav": self.last_reward}
 
 
 class DynamicColavRewarder(IReward):
-    """
-    Rewards the agent for avoiding dynamic obstacles based on Meyer et al. (2020).
+    """Rewards the agent for avoiding dynamic obstacles based on Meyer et al. (2020).
+
     Partial COLREGs compliance is also implemented.
     NOTE: The raw penalty calculation is altered, and does not take into account
     negative TS velocities. The gamma_v parameters are consequently simplified.
     """
 
-    def __init__(self, env: "COLAVEnvironment", params: Optional[DynamicColavRewardParams] = None) -> None:
+    def __init__(self, env: "COLAVEnvironment", params: DynamicColavRewardParams | None = None) -> None:
         super().__init__(env)
         if isinstance(env.observation_type, csgym_obs.DictObservation):
             for observation_type in env.observation_type.observation_types:
@@ -489,8 +489,10 @@ class DynamicColavRewarder(IReward):
 
         self.last_reward = 0.0
 
-    def __call__(self, state: csgym_obs.Observation, action: Optional[csgym_action.Action] = None, **kwargs) -> float:
-        assert self.sensor_suite is not None, "LidarLikeObservation is not part of the observation!"
+    def __call__(self, state: csgym_obs.Observation, action: csgym_action.Action | None = None, **kwargs) -> float:  # noqa: ARG002, ARG003
+        if self.sensor_suite is None:
+            msg = "LidarLikeObservation is not part of the observation!"
+            raise ValueError(msg)
         # Extract current measured distances and velocities from LidarLikeObservation object
         dist_measurements = deepcopy(self.sensor_suite.current_dist_measurements)
         obstacle_velocities = deepcopy(self.sensor_suite.current_obstacle_velocities)
@@ -500,7 +502,7 @@ class DynamicColavRewarder(IReward):
         den = 0
         lambdas = []
 
-        for x, v, sensor_angle in zip(dist_measurements, obstacle_velocities, self.sensor_angles):
+        for x, v, sensor_angle in zip(dist_measurements, obstacle_velocities, self.sensor_angles, strict=False):
             v_y = v[1]
             if v_y != 0.0:
                 zeta_v, zeta_x = self._determine_scaling(theta=sensor_angle)
@@ -525,8 +527,10 @@ class DynamicColavRewarder(IReward):
         return self.last_reward
 
     def _determine_scaling(self, theta: float) -> tuple[float, float]:
-        """Determines the velocity and distance scaling parameters for the
-        reward calculation, based on the sensor angle theta.
+        """Determine the velocity and distance scaling parameters.
+
+        Based on the sensor angle theta for the reward calculation.
+
         Args:
             theta (float): angle of the obstacle relative to the ownship in radians,
                            where 0 is in front of the ownship.
@@ -543,8 +547,9 @@ class DynamicColavRewarder(IReward):
             return self.params.gamma_v_stern, self.params.gamma_x_stern
 
     def _determine_tradeoff_coefficient(self, v_y: float, x_i: float) -> float:
-        """Calculates the tradeoff coefficient lambda based on the
-        distance and velocity of the TS.
+        """Calculate the tradeoff coefficient lambda.
+
+        Based on the distance and velocity of the TS.
 
         Args:
             v_y (float): The body-relative velocity of the TS
@@ -565,14 +570,14 @@ class DynamicColavRewarder(IReward):
 
         return 1 / den
 
-    def get_last_rewards_as_dict(self) -> dict:
+    def get_last_rewards_as_dict(self) -> dict:  # noqa: D102
         return {"r_dynamic_colav": self.last_reward}
 
 
 class AutopilotReferenceRewarder(IReward):
-    """Rewards the agent negatively for rapid changes in the output signals"""
+    """Rewards the agent negatively for rapid changes in the output signals."""
 
-    def __init__(self, env: "COLAVEnvironment", params: Optional[AutopilotReferenceRewardParams] = None) -> None:
+    def __init__(self, env: "COLAVEnvironment", params: AutopilotReferenceRewardParams | None = None) -> None:
         super().__init__(env)
 
         self.course_coefficient = params.course_coefficient
@@ -586,8 +591,10 @@ class AutopilotReferenceRewarder(IReward):
 
         self.last_reward = 0.0
 
-    def __call__(self, state: csgym_obs.Observation, action: Optional[csgym_action.Action] = None, **kwargs) -> float:
-        assert action is not None, "Action was not defined!"
+    def __call__(self, state: csgym_obs.Observation, action: csgym_action.Action | None = None, **kwargs) -> float:  # noqa: ARG002, ARG003
+        if action is None:
+            msg = "Action was not defined!"
+            raise ValueError(msg)
 
         # Unpack the action
         speed_delta = action[1]
@@ -607,20 +614,14 @@ class AutopilotReferenceRewarder(IReward):
         self.last_reward = speed_dot_reward + course_dot_reward
         return self.last_reward
 
-    def get_last_rewards_as_dict(self) -> dict:
+    def get_last_rewards_as_dict(self) -> dict:  # noqa: D102
         return {"r_autopilot_reference": self.last_reward}
 
 
 class Rewarder(IReward):
     """The rewarder class."""
 
-    def __init__(self, env: "COLAVEnvironment", config: Optional[Config] = None) -> None:
-        """Initializes the rewarder.
-
-        Args:
-            env (COLAVEnvironment): The environment
-            config (Config): The rewarder configuration
-        """
+    def __init__(self, env: "COLAVEnvironment", config: Config | None = None) -> None:
         self.config = config if config else Config()
         self._last_reward = 0.0
         self.rewarders = []
@@ -642,19 +643,19 @@ class Rewarder(IReward):
             elif isinstance(rewarder, AutopilotReferenceRewardParams):
                 self.rewarders.append(AutopilotReferenceRewarder(env, rewarder))
 
-    def __call__(self, state: csgym_obs.Observation, action: Optional[csgym_action.Action] = None, **kwargs) -> float:
+    def __call__(self, state: csgym_obs.Observation, action: csgym_action.Action | None = None, **kwargs) -> float:
         reward = 0.0
         for rewarder in self.rewarders:
             reward += rewarder(state, action, **kwargs)
         self._last_reward = reward
         return reward
 
-    def get_last_rewards_as_dict(self) -> dict:
+    def get_last_rewards_as_dict(self) -> dict:  # noqa: D102
         rewards = {}
         for rewarder in self.rewarders:
             rewards.update(rewarder.get_last_rewards_as_dict())
         return rewards
 
     @property
-    def last_reward(self):
+    def last_reward(self) -> float:  # noqa: D102
         return self._last_reward

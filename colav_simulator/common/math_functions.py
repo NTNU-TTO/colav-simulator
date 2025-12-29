@@ -1,21 +1,18 @@
-"""
-    math_functions.py
+"""math_functions.py.
 
-    Summary:
-        Contains common math functions.
+Summary:
+Contains common math functions.
 
-    Author: Trym Tengesdal
+Author: Trym Tengesdal
 """
 
 import math
-from typing import Tuple
 
 import numpy as np
 
 
 def find_dependent_rows(A: np.ndarray) -> list:
-    """
-    Find the indices of linearly dependent rows in a rank-deficient matrix A.
+    """Find the indices of linearly dependent rows in a rank-deficient matrix A.
 
     Args:
         A (numpy.ndarray): The input matrix
@@ -54,7 +51,7 @@ def find_dependent_rows(A: np.ndarray) -> list:
     return sorted(dependent_rows)
 
 
-def cpa(p_A: np.ndarray, v_A: np.ndarray, p_B: np.ndarray, v_B: np.ndarray) -> Tuple[float, float]:
+def cpa(p_A: np.ndarray, v_A: np.ndarray, p_B: np.ndarray, v_B: np.ndarray) -> tuple[float, float]:
     """Computes the closest point of approach (CPA) between two objects A and B.
 
     Args:
@@ -77,8 +74,8 @@ def cpa(p_A: np.ndarray, v_A: np.ndarray, p_B: np.ndarray, v_B: np.ndarray) -> T
         return t_cpa, d_cpa
 
 
-def linear_map(v: float, x: Tuple[float, float], y: Tuple[float, float]) -> float:
-    """Linearly maps v from x to y
+def linear_map(v: float, x: tuple[float, float], y: tuple[float, float]) -> float:
+    """Linearly maps v from x to y.
 
     Args:
         v (float): Value to map
@@ -92,7 +89,7 @@ def linear_map(v: float, x: Tuple[float, float], y: Tuple[float, float]) -> floa
 
 
 def wrap_min_max(x: float | np.ndarray, x_min: float | np.ndarray, x_max: float | np.ndarray) -> float | np.ndarray:
-    """Wraps input x to [x_min, x_max)
+    """Wraps input x to [x_min, x_max).
 
     Args:
         x (float or np.ndarray): Unwrapped value
@@ -109,7 +106,7 @@ def wrap_min_max(x: float | np.ndarray, x_min: float | np.ndarray, x_max: float 
 
 
 def wrap_angle_to_pmpi(angle: float | np.ndarray) -> float | np.ndarray:
-    """Wraps input angle to [-pi, pi)
+    """Wraps input angle to [-pi, pi).
 
     Args:
         angle (float or np.ndarray): Angle in radians
@@ -124,7 +121,7 @@ def wrap_angle_to_pmpi(angle: float | np.ndarray) -> float | np.ndarray:
 
 
 def wrap_angle_to_02pi(angle: float | np.ndarray) -> float | np.ndarray:
-    """Wraps input angle to [0, 2pi)
+    """Wraps input angle to [0, 2pi).
 
     Args:
         angle (float or np.ndarray): Angle in radians
@@ -139,7 +136,7 @@ def wrap_angle_to_02pi(angle: float | np.ndarray) -> float | np.ndarray:
 
 
 def wrap_angle_diff_to_02pi(a_1: float | np.ndarray, a_2: float | np.ndarray) -> float | np.ndarray:
-    """Wraps angle difference a_1 - a_2 to within [0, 2pi)
+    """Wraps angle difference a_1 - a_2 to within [0, 2pi).
 
     Args:
         a_1 (float or np.ndarray): Angle in radians
@@ -156,7 +153,7 @@ def wrap_angle_diff_to_02pi(a_1: float | np.ndarray, a_2: float | np.ndarray) ->
 
 
 def wrap_angle_diff_to_pmpi(a_1: float | np.ndarray, a_2: float | np.ndarray) -> float | np.ndarray:
-    """Wraps angle difference a_1 - a_2 to within [-pi, pi)
+    """Wraps angle difference a_1 - a_2 to within [-pi, pi).
 
     Args:
         a_1 (float or np.ndarray): Angle in radians
@@ -236,7 +233,7 @@ def cm2inch(cm: float) -> float:  # inch to cm
     return cm / 2.54
 
 
-def mps2knots(mps):
+def mps2knots(mps: float) -> float:
     """Converts from miles per second to knots.
 
     Args:
@@ -273,14 +270,14 @@ def knots2ms(knots: float) -> float:
     return knots * 0.514444
 
 
-def normalize_vec(v: np.ndarray):
+def normalize_vec(v: np.ndarray) -> np.ndarray:
     """Normalize vector v to length 1.
 
     Args:
-        v (np.ndarray): Vector to normalize
+        v (np.ndarray): Vector to normalize.
 
     Returns:
-        np.ndarray: Normalized vector
+        np.ndarray: Normalized vector.
     """
     norm = np.linalg.norm(v)
     if norm < 0.000001:
@@ -290,29 +287,31 @@ def normalize_vec(v: np.ndarray):
 
 
 def sat(x: float | np.ndarray, x_min: float | np.ndarray, x_max: float | np.ndarray) -> float | np.ndarray:
-    """x = sat(x, x_min, x_max) saturates a signal x such that x_min <= x <= x_max
+    """Saturates a signal x such that x_min <= x <= x_max.
 
     Args:
-        x (float or np.ndarray): Signal to saturate
-        x_min (float or np.ndarray): Minimum value
-        x_max (float or np.ndarray): Maximum value
+        x (float | np.ndarray): Signal to saturate.
+        x_min (float | np.ndarray): Minimum value.
+        x_max (float | np.ndarray): Maximum value.
 
     Returns:
-        float or np.ndarray: Saturated signal
+        float | np.ndarray: Saturated signal.
     """
     return np.clip(x, x_min, x_max)
 
 
 def coriolis_matrix_rigid_body(M_RB: np.ndarray, nu: np.ndarray) -> np.ndarray:
-    """Calculates the rigid body Coriolis matrix C_RB(v) assuming decoupled surge and sway-yaw dynamics,
-    as in eq. 7.13 in Fossen (2011).
+    """Calculates the rigid body Coriolis matrix C_RB(v).
+
+    Assumes decoupled surge and sway-yaw dynamics, as in eq. 7.13 in Fossen
+    (2011).
 
     Args:
-        M_RB (np.ndarray): Rigid body mass matrix
-        nu (np.ndarray): Body-frame velocity nu = [u, v, r]^T
+        M_RB (np.ndarray): Rigid body mass matrix.
+        nu (np.ndarray): Body-frame velocity nu = [u, v, r]^T.
 
     Returns:
-        np.ndarray: Coriolis matrix C_RB(v)
+        np.ndarray: Coriolis matrix C_RB(v).
     """
     c13 = -M_RB[1, 2] * nu[2] - M_RB[1, 1] * nu[1]
     c23 = M_RB[0, 0] * nu[0]
@@ -320,15 +319,17 @@ def coriolis_matrix_rigid_body(M_RB: np.ndarray, nu: np.ndarray) -> np.ndarray:
 
 
 def coriolis_matrix_added_mass(M_A: np.ndarray, nu: np.ndarray) -> np.ndarray:
-    """Calculates the added mass Coriolis matrix C_A(v) assuming decoupled surge and sway-yaw dynamics,
-    for non-symmetric added mass matrix
+    """Calculates the added mass Coriolis matrix C_A(v).
+
+    Assumes decoupled surge and sway-yaw dynamics, for non-symmetric added mass
+    matrix.
 
     Args:
-        M_A (np.ndarray): Added mass matrix
-        nu (np.ndarray): Body-frame velocity nu = [u, v, r]^T
+        M_A (np.ndarray): Added mass matrix.
+        nu (np.ndarray): Body-frame velocity nu = [u, v, r]^T.
 
     Returns:
-        np.ndarray: Coriolis matrix C_A(v)
+        np.ndarray: Coriolis matrix C_A(v).
     """
     c13 = -M_A[1, 1] * nu[1] - 0.5 * (M_A[2, 1] + M_A[1, 2]) * nu[2]
     c23 = M_A[0, 0] * nu[0]
@@ -336,15 +337,17 @@ def coriolis_matrix_added_mass(M_A: np.ndarray, nu: np.ndarray) -> np.ndarray:
 
 
 def Cmtrx(Mmtrx: np.ndarray, nu: np.ndarray) -> np.ndarray:
-    """Calculates coriolis matrix C(v) assuming decoupled surge and sway-yaw dynamics,
-    as in eq. (7.12) - (7.15) in Fossen2011
+    """Calculates coriolis matrix C(v).
+
+    Assumes decoupled surge and sway-yaw dynamics, as in eq. (7.12) - (7.15) in
+    Fossen2011.
 
     Args:
         Mmtrx (np.ndarray): Mass matrix (M_RB + M_A).
-        nu (np.ndarray): Body-frame velocity nu = [u, v, r]^T
+        nu (np.ndarray): Body-frame velocity nu = [u, v, r]^T.
 
     Returns:
-        np.ndarray: Coriolis matrix C(v)
+        np.ndarray: Coriolis matrix C(v).
     """
     c13 = -(Mmtrx[1, 1] * nu[1] + Mmtrx[1, 2] * nu[2])
     c23 = Mmtrx[0, 0] * nu[0]
@@ -353,42 +356,58 @@ def Cmtrx(Mmtrx: np.ndarray, nu: np.ndarray) -> np.ndarray:
 
 
 def Dmtrx(D_l: np.ndarray, D_q: np.ndarray, D_c: np.ndarray, nu: np.ndarray) -> np.ndarray:
-    """Calculates damping matrix D(nu) assuming decoupled surge and sway-yaw dynamics,
-    as in eq. (7.24) in Fossen2011+
+    """Calculates damping matrix D(nu).
+
+    Assumes decoupled surge and sway-yaw dynamics, as in eq. (7.24) in
+    Fossen2011+.
 
     Args:
         D_l (np.ndarray): Linear damping matrix.
         D_q (np.ndarray): Quadratic damping matrix.
         D_c (np.ndarray): Cubic damping matrix.
-        nu (np.ndarray): Body-frame velocity nu = [u, v, r]^T
+        nu (np.ndarray): Body-frame velocity nu = [u, v, r]^T.
 
     Returns:
-        np.ndarray: Damping matrix D = D_l + D_q(nu) + D_c(nu)
+        np.ndarray: Damping matrix D = D_l + D_q(nu) + D_c(nu).
     """
     return D_l + D_q * np.abs(nu) + D_c * (nu * nu)
 
 
 def Smtrx(a: np.ndarray) -> np.ndarray:
-    """
-    S = Smtrx(a) computes the 3x3 vector skew-symmetric matrix S(a) = -S(a)'.
-    The cross product satisfies: a x b = S(a)b.
-    """
+    """Computes the 3x3 vector skew-symmetric matrix S(a) = -S(a)'.
 
+    The cross product satisfies: a x b = S(a)b.
+
+    Args:
+        a (np.ndarray): Input vector.
+
+    Returns:
+        np.ndarray: Skew-symmetric matrix S(a).
+    """
     S = np.array([[0, -a[2], a[1]], [a[2], 0, -a[0]], [-a[1], a[0], 0]])
 
     return S
 
 
 def Hmtrx(r: np.ndarray) -> np.ndarray:
-    """
-    H = Hmtrx(r) computes the 6x6 system transformation matrix
-    H = [eye(3)     S'
-         zeros(3,3) eye(3) ]       Property: inv(H(r)) = H(-r)
-    If r = r_bg is the vector from the CO to the CG, the model matrices in CO and
-    CG are related by: M_CO = H(r_bg)' * M_CG * H(r_bg). Generalized position and
-    force satisfy: eta_CO = H(r_bg)' * eta_CG and tau_CO = H(r_bg)' * tau_CG
-    """
+    """Computes the 6x6 system transformation matrix.
 
+    H = [np.eye(3)     S'
+         np.zeros((3,3)) np.eye(3) ]
+
+    Property: inv(H(r)) = H(-r). If r = r_bg is the vector from the CO to the
+    CG, the model matrices in CO and CG are related by:
+    M_CO = H(r_bg)' * M_CG * H(r_bg).
+
+    Generalized position and force satisfy:
+    eta_CO = H(r_bg)' * eta_CG and tau_CO = H(r_bg)' * tau_CG.
+
+    Args:
+        r (np.ndarray): Input vector.
+
+    Returns:
+        np.ndarray: System transformation matrix H.
+    """
     H = np.identity(6, float)
     H[0:3, 3:6] = Smtrx(r).T
 
@@ -396,11 +415,18 @@ def Hmtrx(r: np.ndarray) -> np.ndarray:
 
 
 def Rzyx(phi: float, theta: float, psi: float) -> np.ndarray:
-    """
-    R = Rzyx(phi,theta,psi) computes the Euler angle rotation matrix R in SO(3)
-    using the zyx convention
-    """
+    """Computes the Euler angle rotation matrix R in SO(3).
 
+    Uses the zyx convention.
+
+    Args:
+        phi (float): Roll angle in radians.
+        theta (float): Pitch angle in radians.
+        psi (float): Yaw angle in radians.
+
+    Returns:
+        np.ndarray: Rotation matrix R.
+    """
     cphi = math.cos(phi)
     sphi = math.sin(phi)
     cth = math.cos(theta)
@@ -420,25 +446,42 @@ def Rzyx(phi: float, theta: float, psi: float) -> np.ndarray:
 
 
 def Rmtrx(psi: float) -> np.ndarray:
-    """
-    R = Rmtrx(psi) computes the 3x3 rotation matrix of an angle psi about the z-axis
+    """Computes the 3x3 rotation matrix of an angle psi about the z-axis.
+
+    Args:
+        psi (float): Rotation angle in radians.
+
+    Returns:
+        np.ndarray: Rotation matrix R.
     """
     return np.array([[np.cos(psi), -np.sin(psi), 0], [np.sin(psi), np.cos(psi), 0], [0, 0, 1]])
 
 
 def Rmtrx2D(psi: float) -> np.ndarray:
-    """
-    R = Rmtrx2D(psi) computes the 2D rotation matrix.
-    Rmtrx = np.array([[np.cos(psi), np.sin(psi)], [-np.sin(psi), np.cos(psi)])
+    """Computes the 2D rotation matrix.
+
+    Rmtrx = np.array([[np.cos(psi), np.sin(psi)], [-np.sin(psi), np.cos(psi)]]).
+
+    Args:
+        psi (float): Rotation angle in radians.
+
+    Returns:
+        np.ndarray: 2D rotation matrix.
     """
     return np.array([[np.cos(psi), -np.sin(psi)], [np.sin(psi), np.cos(psi)]])
 
 
 def Jtheta(Theta: np.ndarray) -> np.ndarray:
-    """
-    J = Jtheta(Theta) computes the transformation matrix in
+    """Computes the transformation matrix.
 
-    eta_dot = J_Theta(eta) * nu using the zyx convention. eta = [x, y, z, phi, theta, psi]
+    eta_dot = J_Theta(eta) * nu using the zyx convention. eta = [x, y, z, phi,
+    theta, psi].
+
+    Args:
+        Theta (np.ndarray): Euler angles [phi, theta, psi]^T.
+
+    Returns:
+        np.ndarray: Transformation matrix J.
     """
     phi = Theta[0]
     theta = Theta[1]
@@ -449,10 +492,17 @@ def Jtheta(Theta: np.ndarray) -> np.ndarray:
     return Jmtrx
 
 
-def Tzyx(phi, theta) -> np.ndarray:
-    """
-    T = Tzyx(phi,theta) computes the Euler angle attitude
-    transformation matrix T using the zyx convention
+def Tzyx(phi: float, theta: float) -> np.ndarray:
+    """Computes the Euler angle attitude transformation matrix T.
+
+    Uses the zyx convention.
+
+    Args:
+        phi (float): Roll angle in radians.
+        theta (float): Pitch angle in radians.
+
+    Returns:
+        np.ndarray: Transformation matrix T.
     """
     cphi = math.cos(phi)
     sphi = math.sin(phi)
@@ -469,15 +519,22 @@ def Tzyx(phi, theta) -> np.ndarray:
 
 
 def m2c(M: np.ndarray, nu: np.ndarray) -> np.ndarray:
-    """
-    Cmtrx = m2c(M,nu) computes the Coriolis and centripetal matrix C from the
-    mass matrix M and generalized velocity vector nu (Fossen 2021, Ch. 3)
+    """Computes the Coriolis and centripetal matrix C.
+
+    From the mass matrix M and generalized velocity vector nu (Fossen 2021,
+    Ch. 3).
+
+    Args:
+        M (np.ndarray): Mass matrix.
+        nu (np.ndarray): Generalized velocity vector.
+
+    Returns:
+        np.ndarray: Coriolis and centripetal matrix C.
     """
     M = 0.5 * (M + M.T)  # systematization of the inertia matrix
 
     #  6-DOF model
     if len(nu) == 6:
-
         M11mtrx = M[0:3, 0:3]
         M12mtrx = M[0:3, 3:6]
         M21mtrx = M12mtrx.T
