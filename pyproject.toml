@@ -72,6 +72,6 @@ filterwarnings = [
 ]
 
 [tool.uv.sources]
-seacharts = { git = "https://github.com/trymte/seacharts.git", rev = "18da5093303a7d3b0767bbf24da7ee2edcc343a9" }
+seacharts = { git = "https://github.com/trymte/seacharts.git", rev = "97cf289fcb0e891c53e6507ecee9827ff3b7acb1" }
 vimmjipda = { git = "https://github.com/ntnu-itk-autonomous-ship-lab/vimmjipda.git", rev = "5954e040cb04b3d909301bf53d35c6357ab3b693" }
 rrt-star-lib = { git = "https://github.com/ntnu-itk-autonomous-ship-lab/rrt-rs.git", rev = "184b045e05861c9d7fe4f236786301214f9b87d2" }
