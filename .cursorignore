@@ -1,0 +1,10 @@
+# Exclude .gdb folders from Cursor indexing
+data/enc/**/*.gdb/**
+data/enc/**/*.gdbtable
+data/enc/**/*.gdbtablx
+data/enc/**/*.gdbindexes
+data/enc/**/*.atx
+data/enc/**/*.spx
+data/enc/**/*.horizon
+*.gdb/**
+
