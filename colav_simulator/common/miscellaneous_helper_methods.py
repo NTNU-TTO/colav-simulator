@@ -2,6 +2,7 @@ import math
 import os.path
 from datetime import datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
@@ -9,7 +10,6 @@ import psutil
 from scipy.interpolate import interp1d
 from scipy.stats import chi2
 from shapely import geometry
-from zoneinfo import ZoneInfo
 
 import colav_simulator.common.map_functions as mapf
 import colav_simulator.common.math_functions as mf

@@ -64,6 +64,7 @@ only-include = ["colav_simulator"]
 "config" = "colav_simulator/config"
 "examples" = "colav_simulator/examples"
 "scenarios" = "colav_simulator/scenarios"
+"data" = "colav_simulator/data"
 "tests" = "colav_simulator/tests"
 
 [tool.pytest.ini_options]

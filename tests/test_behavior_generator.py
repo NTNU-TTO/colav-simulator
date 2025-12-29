@@ -1,5 +1,7 @@
 """Test file showing how the behavior generator can be used to generate scenarios."""
 
+import pytest
+
 import colav_simulator.common.paths as dp
 from colav_simulator.behavior_generator import (
     BehaviorGenerationMethod,
@@ -7,19 +9,23 @@ from colav_simulator.behavior_generator import (
 )
 from colav_simulator.scenario_generator import Config, ScenarioGenerator
 
+RRT_LIB_FOUND = True
+try:
+    import rrt_star_lib  # pyright: ignore[reportMissingImports]  # noqa: F401
+except ModuleNotFoundError as err:
+    print(f"Warning: rrt_star_lib not found! Error msg: {err}")
+    RRT_LIB_FOUND = False
 
+
+@pytest.mark.skipif(not RRT_LIB_FOUND, reason="rrt-star-lib not found")
 def test_behavior_generator() -> None:
     sg_config = Config()
     sg_config.manual_episode_accept = False
-    sg_config.behavior_generator.ownship_method = (
-        BehaviorGenerationMethod.ConstantSpeedAndCourse
-    )
+    sg_config.behavior_generator.ownship_method = BehaviorGenerationMethod.ConstantSpeedAndCourse
     sg_config.behavior_generator.target_ship_method = (
         BehaviorGenerationMethod.RRTStar
     )  # NOTE: Remember to install the rrt-star-lib package first.
-    sg_config.behavior_generator.target_ship_rrt_behavior_sampling_method = (
-        RRTBehaviorSamplingMethod.OwnshipWaypointCorridor
-    )
+    sg_config.behavior_generator.target_ship_rrt_behavior_sampling_method = RRTBehaviorSamplingMethod.OwnshipWaypointCorridor
     sg_config.behavior_generator.rrtstar.params.max_time = 10.0
     sg_config.verbose = True
     scenario_generator = ScenarioGenerator(config=sg_config)
