@@ -1,14 +1,14 @@
-"""Test module for gym.py
+"""Test module for gym.py.
 
-    Shows how to use the gym environment, and how to save a video + gif of the simulation.
+Shows how to use the gym environment, and how to save a video + gif of the simulation.
 """
+
+import gymnasium as gym
+import numpy as np
 
 import colav_simulator.common.image_helper_methods as ihm
 import colav_simulator.common.paths as dp
-import gymnasium as gym
-import numpy as np
-from colav_simulator.gym.environment import COLAVEnvironment
-from colav_simulator.scenario_generator import ScenarioGenerator
+from colav_simulator.gym.environment import COLAVEnvironment  # noqa: F401
 
 
 def test_gym() -> None:
@@ -42,7 +42,7 @@ def test_gym() -> None:
 
     env.reset(seed=1)
     frames = []
-    for i in range(100):
+    for _i in range(100):
         obs, reward, terminated, truncated, info = env.step(np.array([0.0, 0.0]))
 
         frames.append(env.render())

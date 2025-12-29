@@ -1,26 +1,24 @@
-"""
-    kuwata_vo.py
+"""kuwata_vo.py.
 
-    Summary:
-        A reactive COLAV planning algorithm based on the paper
-        "Safe Maritime Autonomous Navigation With COLREGS, Using Velocity Obstacles"
-        by Kuwata et al.
+Summary:
+A reactive COLAV planning algorithm based on the paper
+"Safe Maritime Autonomous Navigation With COLREGS, Using Velocity Obstacles"
+by Kuwata et al.
 
-    Author: Trym Tengesdal
+NOTE: Not fully verified and tested.
 """
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Optional, Tuple
+
+import matplotlib.pyplot as plt
+import numpy as np
+from seacharts.enc import ENC
+from shapely import affinity, geometry
 
 import colav_simulator.common.map_functions as mapf
 import colav_simulator.common.math_functions as mf
 import colav_simulator.common.miscellaneous_helper_methods as mhm
-import matplotlib.pyplot as plt
-import numpy as np
-import shapely.affinity as affinity
-import shapely.geometry as geometry
-from seacharts.enc import ENC
 
 
 class VOCOLREGSSituation(Enum):
@@ -65,7 +63,7 @@ class VOParams:
     colregs_violation_cost: float = 100.0  # The cost for a COLREGS violation.
     Q: np.ndarray = field(default_factory=lambda: np.eye(2))  # The weighting matrix for the cost function.
 
-    def to_dict(self):
+    def to_dict(self) -> dict:  # noqa: D102
         output = {
             "length_os": self.length_os,
             "width_os": self.width_os,
@@ -90,7 +88,7 @@ class VOParams:
         return output
 
     @classmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls, data: dict) -> "VOParams":  # noqa: D102
         output = VOParams(
             length_os=data["length_os"],
             width_os=data["width_os"],
@@ -116,7 +114,7 @@ class VOParams:
 
 
 class VO:
-    def __init__(self, config: Optional[VOParams] = None) -> None:
+    def __init__(self, config: VOParams | None = None) -> None:
         if config:
             self._params = config
         else:
@@ -135,7 +133,7 @@ class VO:
         buffer = self._params.safety_buffer
         theta = 0.0
         coords = []
-        for i in range(100):
+        for _i in range(100):
             theta += 2.01 * np.pi / 100
             coords.append((buffer * np.cos(theta), buffer * np.sin(theta)))
 
@@ -159,9 +157,8 @@ class VO:
         return self._references
 
     def plan(
-        self, t: float, v_ref: np.ndarray, ownship_state: np.ndarray, do_list: list, enc: Optional[ENC] = None
+        self, t: float, v_ref: np.ndarray, ownship_state: np.ndarray, do_list: list, enc: ENC | None = None
     ) -> np.ndarray:
-
         if self._initialized and t - self._t_prev < (1.0 / self._params.planning_frequency):
             return self.get_current_plan()
 
@@ -242,26 +239,31 @@ class VO:
         self._references[3, 0] = speed_opt
         return self._references
 
-    def _compute_optimal_controls(self, v_ref: np.ndarray, v_os: np.ndarray, psi_os: float) -> Tuple[float, float]:
-        """Computes the optimal controls based on the current admissible controls and the VO cost function
+    def _compute_optimal_controls(self, v_ref: np.ndarray, v_os: np.ndarray, psi_os: float) -> tuple[float, float]:
+        """Computes the optimal controls based on the current admissible controls and the VO cost function.
+
         Args:
             v_ref (np.ndarray): The reference velocity.
             v_os (np.ndarray): The ownship velocity.
             psi_os (float): The ownship heading.
 
         Returns:
-            Tuple[float, float]: The optimal heading and speed.
+            tuple[float, float]: The optimal heading and speed.
         """
         min_cost = 1e10
         for i, speed in enumerate(self._speed_set):
             for j, heading in enumerate(self._heading_set):
-
                 candidate_heading = heading + psi_os
                 candidate_speed = speed + np.linalg.norm(v_os)
-                v_os_new = np.array([candidate_speed * np.cos(candidate_heading), speed * np.sin(candidate_heading)])
-                self._total_costs[i, j] = self._violation_costs[i, j] + (
+                v_os_new = np.array(
+                    [
+                        candidate_speed * np.cos(candidate_heading),
+                        speed * np.sin(candidate_heading),
+                    ]
+                )
+                self._total_costs[i, j] = self._violation_costs[i, j] + (v_ref - v_os_new).transpose() @ self._params.Q @ (
                     v_ref - v_os_new
-                ).transpose() @ self._params.Q @ (v_ref - v_os_new)
+                )
 
                 if self._total_costs[i, j] < min_cost:
                     min_cost = self._total_costs[i, j]
@@ -282,12 +284,12 @@ class VO:
         p_os: np.ndarray,
         v_os: np.ndarray,
         psi_os: float,
-        enc: Optional[ENC] = None,
+        enc: ENC | None = None,  # noqa: ARG002
         show_debug_plots: bool = False,
-        poly_do: Optional[geometry.Polygon] = None,
-        poly_os: Optional[geometry.Polygon] = None,
+        poly_do: geometry.Polygon | None = None,
+        poly_os: geometry.Polygon | None = None,
     ) -> None:
-        """Updates the cost of controls causing any violation (COLREGS, VO, grounding)
+        """Updates the cost of controls causing any violation (COLREGS, VO, grounding).
 
         Args:
             situation (VOCOLREGSSituation): The COLREGS situation.
@@ -298,13 +300,16 @@ class VO:
             p_os (np.ndarray): Ownship position.
             v_os (np.ndarray): Ownship velocity.
             psi_os (float): Ownship heading.
-            enc (Optional[ENC], optional): The Electronic Navigational Charts. Defaults to None.
-            show_debug_plots (bool, optional): Whether to show debug plots. Defaults to False.
-            poly_do (Optional[geometry.Polygon], optional): The dynamic obstacle polygon, used for plotting
-            poly_os (Optional[geometry.Polygon], optional): The ownship polygon, used for plotting
+            enc (ENC | None): The Electronic Navigational Charts. Defaults to None.
+            show_debug_plots (bool): Whether to show debug plots. Defaults to False.
+            poly_do (geometry.Polygon | None): The dynamic obstacle polygon, used for
+                plotting.
+            poly_os (geometry.Polygon | None): The ownship polygon, used for plotting.
         """
         if show_debug_plots:
-            assert poly_do is not None and poly_os is not None
+            if poly_do is None or poly_os is None:
+                msg = "poly_do and poly_os must be provided when show_debug_plots is True"
+                raise ValueError(msg)
             fig, ax = plot_vo_situation(
                 expanded_poly_do,
                 expanded_poly_do_buffered,
@@ -318,7 +323,6 @@ class VO:
             ray_plot = ax.plot([0.0, 0.0], [0.0, 0.0], "m")[0]
 
         for j, heading in enumerate(self._heading_set):
-            speed_above_avoids_grounding = True
             for i, speed in reversed(list(enumerate(self._speed_set))):
                 # if not speed_above_avoids_grounding:
                 #     break  # No need to check the remaining speeds
@@ -345,11 +349,7 @@ class VO:
                     # Check if own-ship follows a velocity in V1, i.e. it moves such that the DO is on its starboard side
                     in_v1 = not in_v3 and (p_diff[0] * v_diff[1] - p_diff[1] * v_diff[0] > 0)
 
-                    if in_v1 and (
-                        situation == VOCOLREGSSituation.HO
-                        or situation == VOCOLREGSSituation.OT_ing
-                        or situation == VOCOLREGSSituation.CR_SS
-                    ):
+                    if in_v1 and (situation in (VOCOLREGSSituation.HO, VOCOLREGSSituation.OT_ing, VOCOLREGSSituation.CR_SS)):
                         self._violation_costs[i, j] = self._params.colregs_violation_cost
                         color = "r"
 
@@ -386,15 +386,17 @@ class VO:
 
     def _update_colregs_situation(
         self, t: float, p_os: np.ndarray, psi_os: float, p_do: np.ndarray, psi_do: float, id_do: int
-    ):
-        """Updates the COLREGS situation of the ownship and the dynamic obstacle, if a time threshold is exceeded.
+    ) -> None:
+        """Updates the COLREGS situation of the ownship and the dynamic obstacle.
+
+        Updates if a time threshold is exceeded.
 
         Args:
             t (float): Current time.
             p_os (np.ndarray): Ownship position.
-            v_os (np.ndarray): Ownship velocity.
+            psi_os (float): Ownship heading.
             p_do (np.ndarray): Dynamic obstacle position.
-            v_do (np.ndarray): Dynamic obstacle velocity.
+            psi_do (float): Dynamic obstacle heading.
             id_do (int): ID of the dynamic obstacle.
         """
         for idx, (id_, t_, _) in enumerate(self._colregs_situations):
@@ -409,13 +411,13 @@ class VO:
 
         Args:
             p_os (np.ndarray): Ownship position.
-            v_os (np.ndarray): Ownship velocity.
+            psi_os (float): Ownship heading.
             p_do (np.ndarray): Dynamic obstacle position.
-            v_do (np.ndarray): Dynamic obstacle velocity.
-
+            psi_do (float): Dynamic obstacle heading.
 
         Returns:
-            VOCOLREGSSituation: The COLREGS situation of the ownship and the dynamic obstacle.
+            VOCOLREGSSituation: The COLREGS situation of the ownship and the dynamic
+                obstacle.
         """
         bearing_do_os = mf.compute_bearing(psi_do, p_do, p_os)
         bearing_os_do = mf.compute_bearing(psi_os, p_os, p_do)
@@ -468,24 +470,34 @@ class VO:
 
     def _compute_expanded_do_polygon(
         self, poly_os: geometry.Polygon, poly_do: geometry.Polygon
-    ) -> Tuple[geometry.Polygon, geometry.Polygon]:
-        """Computes the minowski sum poly_do + (-poly_os) for the ownship (zero origin referenced) and the dynamic obstacle (referenced to its position).
+    ) -> tuple[geometry.Polygon, geometry.Polygon]:
+        """Computes the minowski sum poly_do + (-poly_os).
 
-        Returns the expanded DO polygon and the expanded DO polygon with the safety buffer (for velocity uncertainty adedd).
+        For the ownship (zero origin referenced) and the dynamic obstacle
+        (referenced to its position). Returns the expanded DO polygon and the
+        expanded DO polygon with the safety buffer (for velocity uncertainty
+        added).
 
         Args:
             poly_os (geometry.Polygon): Ownship polygon.
             poly_do (geometry.Polygon): Dynamic obstacle polygon.
 
         Returns:
-            geometry.Polygon: The expanded DO polygon and the expanded DO polygon with the safety buffer.
+            tuple[geometry.Polygon, geometry.Polygon]: The expanded DO polygon and
+                the expanded DO polygon with the safety buffer.
         """
         reflected_poly_os = compute_reflection(poly_os)
         expanded_poly_do = compute_minowski_sum(poly_do, reflected_poly_os)
         expanded_poly_do_w_uncertainty = compute_minowski_sum(expanded_poly_do, self._safety_buffer_poly)
         return expanded_poly_do, expanded_poly_do_w_uncertainty
 
-    def plot_current_velocity_grid(self, fig: plt.Figure, ax: plt.Axes, v_os: np.ndarray, psi_os: float) -> list:
+    def plot_current_velocity_grid(
+        self,
+        fig: plt.Figure,  # noqa: ARG002
+        ax: plt.Axes,
+        v_os: np.ndarray,
+        psi_os: float,
+    ) -> list:
         """Plots the current admissible and inadmissible velocities for the VO-COLAV.
 
         Args:
@@ -495,7 +507,7 @@ class VO:
             psi_os (float): Ownship heading.
 
         Returns:
-            Tuple[list]: The handles to all velocity vectors in the grid.
+            list: The handles to all velocity vectors in the grid.
         """
         velocity_handles = []
         for i, speed in enumerate(self._speed_set):
@@ -559,14 +571,14 @@ def compute_reflection(poly: geometry.Polygon) -> geometry.Polygon:
 
 def plot_vo_situation(
     expanded_poly_do: geometry.Polygon,
-    expanded_poly_do_buffered,
+    expanded_poly_do_buffered: geometry.Polygon,
     poly_os: geometry.Polygon,
     v_os: np.ndarray,
     poly_do: geometry.Polygon,
     v_do: np.ndarray,
-    fig: Optional[plt.Figure] = None,
-    ax: Optional[plt.Axes] = None,
-) -> Tuple[plt.Figure, plt.Axes]:
+    fig: plt.Figure | None = None,
+    ax: plt.Axes | None = None,
+) -> tuple[plt.Figure, plt.Axes]:
     """Plots the vcurrent velocity obstacle situation.
 
     Args:

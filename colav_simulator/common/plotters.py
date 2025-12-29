@@ -1,27 +1,26 @@
-"""
-    plotters.py
+"""plotters.py.
 
-    Summary:
-        Contains methods for plotting images and data.
+Summary:
+Contains methods for plotting images and data.
 
-    Author: Trym Tengesdal
+Author: Trym Tengesdal
 """
 
 import copy
-from typing import Optional, Tuple
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+import numpy as np
+import seacharts.enc as senc
+from matplotlib.collections import PolyCollection
+from seacharts.display import colors
+from shapely.geometry import MultiPolygon, Polygon
 
 import colav_simulator.common.map_functions as mapf
 import colav_simulator.common.miscellaneous_helper_methods as mhm
-import matplotlib
-import matplotlib.pyplot as plt
-import numpy as np
-import seacharts.display.colors as colors
-import seacharts.enc as senc
-from matplotlib.collections import PolyCollection
-from shapely.geometry import MultiPolygon, Polygon
 
 
-def plot_image(image: np.ndarray, ax: Optional[plt.Axes] = None, title: Optional[str] = None) -> plt.Axes:
+def plot_image(image: np.ndarray, ax: plt.Axes | None = None, title: str | None = None) -> plt.Axes:
     """Plots an image.
 
     Args:
@@ -32,7 +31,7 @@ def plot_image(image: np.ndarray, ax: Optional[plt.Axes] = None, title: Optional
     Returns:
         plt.Axes: Matplotlib axes handle.
     """
-    matplotlib.use("TkAgg")
+    mpl.use("TkAgg")
     if ax is None:
         _, ax = plt.subplots()
     ax.imshow(image)
@@ -47,22 +46,21 @@ def plot_trajectory(
     trajectory: np.ndarray,
     enc: senc.ENC,
     color: str,
-    edge_style: Optional[str] = None,
-    buffer: Optional[float] = 0.5,
-    linewidth: Optional[float] = 1.0,
-    alpha: Optional[float] = 1.0,
-):
+    edge_style: str | None = None,
+    buffer: float | None = 0.5,
+    linewidth: float | None = 1.0,
+    alpha: float | None = 1.0,
+) -> None:
     """Plots the trajectory on the ENC.
 
     Args:
         trajectory (np.ndarray): Input trajectory, minimum 2 x n_samples.
-        enc (ENC): Electronic Navigational Chart object
-        color (str): Color of the trajectory
-        marker_type (Optional[str], optional): Marker type for the trajectory. Defaults to None.@
-        marker_size (Optional[float], optional): Marker size for the trajectory. Defaults to None.
-        edge_style (Optional[str], optional): Edge style for the trajectory. Defaults to None.
-        buffer (Optional[float], optional): Buffer of the trajectory. Defaults to 0.5.
-        linewidth (Optional[float], optional): linewidth of the trajectory. Defaults to 0.5.
+        enc (senc.ENC): Electronic Navigational Chart object.
+        color (str): Color of the trajectory.
+        edge_style (str | None): Edge style for the trajectory. Defaults to None.
+        buffer (float | None): Buffer of the trajectory. Defaults to 0.5.
+        linewidth (float | None): Linewidth of the trajectory. Defaults to 1.0.
+        alpha (float | None): Alpha transparency of the trajectory. Defaults to 1.0.
     """
     enc.start_display()
     trajectory_line = []
@@ -84,22 +82,32 @@ def plot_disturbance(
     name: str,
     enc: senc.ENC,
     color: str,
-    linewidth: Optional[float] = 2.5,
-    location: Optional[str] = "topright",
-    text_location_offset: Optional[Tuple[float, float]] = (0.0, 0.0),
-) -> plt.axes:
+    linewidth: float | None = 2.5,
+    location: str | None = "topright",
+    text_location_offset: tuple[float, float] | None = (0.0, 0.0),
+) -> list:
     """Plots a disturbance vector on the ENC as a vector arrow inside a circle.
-    The name of the disturbance is plotted below the circle, with an offset given by text_location_offset.
+
+    The name of the disturbance is plotted below the circle, with an offset
+    given by text_location_offset.
 
     Args:
-        magnitude (float): Magnitude of the disturbance / length of the disturbance vector
-        direction (float): Direction of the disturbance (defined in a north-east coordinate system)
-        name (str): Name of the disturbance
-        enc (ENC): Electronic Navigational Chart object
-        color (str): Color of the disturbance vector
-        linewidth (Optional[float]): Arrow thickness. Defaults to 1.0.
-        location (Optional[str]): Location of the disturbance vector in ["topleft", "topright", "bottomleft", "bottomright"]. Defaults to "topright".
-        text_location_offset (Optional[Tuple[float, float]]): Offset of the text location. Defaults to (0.0, 0.0).
+        magnitude (float): Magnitude of the disturbance / length of the
+            disturbance vector.
+        direction (float): Direction of the disturbance (defined in a
+            north-east coordinate system).
+        name (str): Name of the disturbance.
+        enc (senc.ENC): Electronic Navigational Chart object.
+        color (str): Color of the disturbance vector.
+        linewidth (float | None): Arrow thickness. Defaults to 2.5.
+        location (str | None): Location of the disturbance vector in
+            ["topleft", "topright", "bottomleft", "bottomright"]. Defaults to
+            "topright".
+        text_location_offset (tuple[float, float] | None): Offset of the text
+            location. Defaults to (0.0, 0.0).
+
+    Returns:
+        list: List of plot handles.
     """
     enc.start_display()
     xmin, ymin, xmax, ymax = enc.bbox  # x is east, y is north
@@ -126,20 +134,26 @@ def plot_disturbance(
 
 
 def plot_shapely_multipolygon(
-    ax: plt.Axes, mp: MultiPolygon, color: str, fill: bool = True, alpha: float = 1.0, zorder: int = 1
-) -> Tuple[plt.Axes, list]:
+    ax: plt.Axes,
+    mp: MultiPolygon,
+    color: str,
+    fill: bool = True,  # noqa: ARG001
+    alpha: float = 1.0,
+    zorder: int = 1,
+) -> tuple[plt.Axes, list]:
     """Plots a shapely MultiPolygon object on a matplotlib axes.
 
     Args:
         ax (plt.Axes): Matplotlib axes handle.
         mp (MultiPolygon): MultiPolygon object to plot.
-        color (str, optional): Color of the MultiPolygon.
-        fill (bool, optional): Option for filling the MultiPolygon. Defaults to False.
-        alpha (float, optional): Transparency of the MultiPolygon. Defaults to 1.0.
-        zorder (int, optional): Z-order of the MultiPolygon. Defaults to 1.
+        color (str): Color of the MultiPolygon.
+        fill (bool): Option for filling the MultiPolygon. Defaults to True.
+        alpha (float): Transparency of the MultiPolygon. Defaults to 1.0.
+        zorder (int): Z-order of the MultiPolygon. Defaults to 1.
 
     Returns:
-        Tuple[plt.Axes, list]: Tuple containing the matplotlib axes handle and a list of handles to the plotted MultiPolygon.
+        tuple[plt.Axes, list]: Tuple containing the matplotlib axes handle and
+            a list of handles to the plotted MultiPolygon.
     """
     if isinstance(mp, Polygon):
         mp = MultiPolygon([mp])
@@ -157,10 +171,10 @@ def plot_background(
     show_seabed: bool = True,
     dark_mode: bool = True,
     uniform_seabed_color: bool = False,
-    land_color: Optional[str] = None,
-    shore_color: Optional[str] = None,
-) -> Tuple[plt.Axes, dict]:
-    """Creates a static background based on the input seacharts
+    land_color: str | None = None,
+    shore_color: str | None = None,
+) -> tuple[plt.Axes, dict]:
+    """Creates a static background based on the input seacharts.
 
     Args:
         ax (plt.Axes): Matplotlib axes handle.
@@ -168,12 +182,16 @@ def plot_background(
         show_shore (bool, optional): Option for showing the shore. Defaults to True.
         show_seabed (bool, optional): Option for showing the seabed. Defaults to True.
         dark_mode (bool, optional): Option for dark mode. Defaults to True.
-        uniform_seabed_color (bool, optional): Option for using a uniform color for the seabed. Defaults to False.
-        land_color (Optional[str], optional): Color of the land to override the default. Defaults to None.
-        shore_color (Optional[str], optional): Color of the shore to override the default. Defaults to None.
+        uniform_seabed_color (bool): Option for using a uniform color for the
+            seabed. Defaults to False.
+        land_color (str | None): Color of the land to override the default.
+            Defaults to None.
+        shore_color (str | None): Color of the shore to override the default.
+            Defaults to None.
 
     Returns:
-        Tuple[plt.Axes, dict]: Tuple containing the matplotlib axes handle and a dictionary of handles to the plotted background.
+        tuple[plt.Axes, dict]: Tuple containing the matplotlib axes handle
+            and a dictionary of handles to the plotted background.
     """
     handles = {}
     # For every layer put in list and assign a color
@@ -217,15 +235,31 @@ def plot_waypoints(
     waypoints: np.ndarray,
     enc: senc.ENC,
     color: str,
-    point_buffer: Optional[float] = 10,
-    disk_buffer: Optional[float] = 80,
-    hole_buffer: Optional[float] = 10,
-    linewidth: Optional[float] = None,
-    alpha: Optional[float] = 0.6,
-    show_annuluses: Optional[bool] = True,
-    draft: Optional[float] = 5.0,
-):
-    assert waypoints.shape[1] > 1, "Waypoints must have at least two points"
+    point_buffer: float | None = 10,
+    disk_buffer: float | None = 80,
+    hole_buffer: float | None = 10,
+    linewidth: float | None = None,
+    alpha: float | None = 0.6,
+    show_annuluses: bool | None = True,
+    draft: float | None = 5.0,  # noqa: ARG001
+) -> None:
+    """Plot waypoints on the ENC.
+
+    Args:
+        waypoints (np.ndarray): Waypoint coordinates.
+        enc (senc.ENC): Electronic Navigational Chart object.
+        color (str): Color of the waypoint path.
+        point_buffer (float | None): Buffer around waypoints. Defaults to 10.
+        disk_buffer (float | None): Disk buffer. Defaults to 80.
+        hole_buffer (float | None): Hole buffer. Defaults to 10.
+        linewidth (float | None): Line width. Defaults to None.
+        alpha (float | None): Transparency. Defaults to 0.6.
+        show_annuluses (bool | None): Whether to show annuluses. Defaults to True.
+        draft (float | None): Draft of the vessel. Defaults to 5.0.
+    """
+    if waypoints.shape[1] <= 1:
+        msg = "Waypoints must have at least two points"
+        raise ValueError(msg)
     path = mapf.create_path_polygon(waypoints, point_buffer, disk_buffer, hole_buffer, show_annuluses)
 
     # hazards = extract_relevant_grounding_hazards_as_union(find_minimum_depth(draft, enc), enc)[0]
@@ -237,7 +271,7 @@ def plot_waypoints(
 
 
 def plot_dynamic_obstacles(
-    dynamic_obstacles: list, color: str, enc: senc.ENC, T: float, dt: float, map_origin: Optional[np.ndarray] = None
+    dynamic_obstacles: list, color: str, enc: senc.ENC, T: float, dt: float, map_origin: np.ndarray | None = None
 ) -> None:
     """Plots the dynamic obstacles as ellipses and ship polygons.
 
@@ -252,11 +286,11 @@ def plot_dynamic_obstacles(
     N = int(T / dt)
     enc.start_display()
     dynamic_obstacles_copy = copy.deepcopy(dynamic_obstacles)
-    for ID, state, cov, length, width in dynamic_obstacles_copy:
+    for _ID, state, cov, length, width in dynamic_obstacles_copy:
         if map_origin is not None:
             state[:2] += map_origin
         ellipse_x, ellipse_y = mhm.create_probability_ellipse(cov, 0.67)
-        ell_geometry = Polygon(zip(ellipse_y + state[1], ellipse_x + state[0]))
+        Polygon(zip(ellipse_y + state[1], ellipse_x + state[0], strict=False))
         # enc.draw_polygon(ell_geometry, color=color, alpha=0.4)
 
         for k in range(0, N, 5):
@@ -277,7 +311,7 @@ def plot_dynamic_obstacles(
 
 
 def plot_rrt_tree(node_list: list, enc: senc.ENC) -> None:
-    """Plots an RRT tree given by the list of nodes containing (state, parent_id, id, trajectory, inputs, cost)
+    """Plots an RRT tree given by the list of nodes containing (state, parent_id, id, trajectory, inputs, cost).
 
     Args:
         node_list (list): List of nodes containing (state, parent_id, id, trajectory, inputs, cost)

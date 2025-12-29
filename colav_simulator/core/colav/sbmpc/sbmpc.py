@@ -1,18 +1,17 @@
-"""
-    sbmpc.py
+"""sbmpc.py.
 
-    Summary: This module contains an implementation of the SB-MPC algorithm for COLAV.
+Summary: This module contains an implementation of the SB-MPC algorithm for COLAV.
 
-    Author: Peder H. Lycke
+Author: Peder H. Lycke
 """
 
 import math
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
 
-import colav_simulator.common.math_functions as mf
 import numpy as np
 import seacharts.enc as senc
+
+import colav_simulator.common.math_functions as mf
 
 
 @dataclass
@@ -46,7 +45,7 @@ class SBMPCParams:
     )  # control behaviors - course offset [deg]
     P_ca_: np.array = field(default_factory=lambda: np.array([0.0, 0.5, 1.0]))  # control behaviors - speed factor
 
-    def to_dict(self):
+    def to_dict(self) -> dict:  # noqa: D102
         output = {
             "P_": self.P_,
             "Q_": self.Q_,
@@ -72,7 +71,7 @@ class SBMPCParams:
         return output
 
     @classmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls, data: dict) -> "SBMPCParams":  # noqa: D102
         output = SBMPCParams(
             P_=data["P_"],
             Q_=data["Q_"],
@@ -99,7 +98,7 @@ class SBMPCParams:
 
 
 class SBMPC:
-    def __init__(self, config: Optional[SBMPCParams] = None) -> None:
+    def __init__(self, config: SBMPCParams | None = None) -> None:
         # NB os_ship: copy of own ship initialized class
         self.T_ = 150.0  # 400                         # prediction horizon [s]
         self.DT_ = 2.5  # 0.1                          # time step [s]
@@ -119,20 +118,22 @@ class SBMPC:
         u_d: float,
         chi_d: float,
         os_state: np.ndarray,
-        do_list: List[Tuple[int, np.ndarray, np.ndarray, float, float]],
-        enc: senc.ENC,
-    ) -> Tuple[float, float]:
+        do_list: list[tuple[int, np.ndarray, np.ndarray, float, float]],
+        enc: senc.ENC,  # noqa: ARG002
+    ) -> tuple[float, float]:
         """Calculates the optimal control offset for the own ship using the SB-MPC algorithm.
 
         Args:
             u_d (float): Nominal surge speed reference for the own ship.
             chi_d (float): Nominal course reference for the own ship.
             os_state (np.ndarray): Current state of the own ship.
-            do_list (List[Tuple[int, np.ndarray, np.ndarray, float, float]]): List of tuples containing the dynamic obstale info
+            do_list (list[tuple[int, np.ndarray, np.ndarray, float, float]]): List
+                of tuples containing the dynamic obstacle info.
             enc (senc.ENC): Electronic navigational chart.
 
         Returns:
-            Tuple[float, float]: Optimal control offset to the own ship nominal LOS references, (speed factor, course offset).
+            tuple[float, float]: Optimal control offset to the own ship nominal LOS
+                references, (speed factor, course offset).
         """
         cost = np.inf
         cost_i = 0
@@ -167,13 +168,16 @@ class SBMPC:
 
         for i in range(len(self._params.Chi_ca_)):
             for j in range(len(self._params.P_ca_)):
-                self.ownship.linear_pred(os_state, u_d * self._params.P_ca_[j], chi_d + self._params.Chi_ca_[i])
+                self.ownship.linear_pred(
+                    os_state,
+                    u_d * self._params.P_ca_[j],
+                    chi_d + self._params.Chi_ca_[i],
+                )
 
                 cost_i = -1
                 for k in range(n_obst):
                     cost_k = self.cost_func(self._params.P_ca_[j], self._params.Chi_ca_[i], obstacles[k])
-                    if cost_k > cost_i:
-                        cost_i = cost_k
+                    cost_i = max(cost_i, cost_k)
                 if cost_i < cost:
                     cost = cost_i
                     u_os_best = self._params.P_ca_[j]
@@ -187,13 +191,15 @@ class SBMPC:
 
         return u_os_best, chi_os_best
 
-    def cost_func(self, P_ca: float, Chi_ca: float, obstacle):
+    def cost_func(  # noqa: PLR0915
+        self, P_ca: float, Chi_ca: float, obstacle: "Obstacle"
+    ) -> float:
         obs_l = obstacle.l
         obs_w = obstacle.w
         os_l = self.ownship.l
         os_w = self.ownship.w
 
-        d, los, los_inv, v_o, v_s = np.zeros(2), np.zeros(2), np.zeros(2), np.zeros(2), np.zeros(2)
+        d, _los, _los_inv, v_o, v_s = np.zeros(2), np.zeros(2), np.zeros(2), np.zeros(2), np.zeros(2)
         self.combined_radius = os_l + obs_l
         d_safe = self._params.D_SAFE_
         d_close = self._params.D_CLOSE_
@@ -203,7 +209,6 @@ class SBMPC:
         t0 = 0
 
         for i in range(self.n_samp):
-
             t += self.DT_
 
             d[0] = obstacle.x_[i] - self.ownship.x_[i]
@@ -227,8 +232,8 @@ class SBMPC:
                 phi = mf.wrap_angle_to_pmpi(math.atan2(d[1], d[0]) - self.ownship.psi_[i])
                 psi_rel = mf.wrap_angle_to_pmpi(psi_o - self.ownship.psi_[i])
 
-                los = d / dist
-                los_inv = -d / dist
+                d / dist
+                -d / dist
 
                 if phi < self._params.PHI_AH_:
                     d_safe_i = d_safe + os_l / 2
@@ -246,8 +251,8 @@ class SBMPC:
                 else:
                     d_safe_i += d_safe + +obs_w / 2
 
-                if (np.dot(v_s, v_o)) > np.cos(np.deg2rad(self._params.PHI_OT_)) * np.linalg.norm(v_s) * np.linalg.norm(
-                    v_o
+                if (
+                    np.dot(v_s, v_o) > np.cos(np.deg2rad(self._params.PHI_OT_)) * np.linalg.norm(v_s) * np.linalg.norm(v_o)
                 ) and np.linalg.norm(v_s) > np.linalg.norm(v_o):
                     d_safe_i = d_safe + os_l / 2 + obs_l / 2
 
@@ -257,9 +262,9 @@ class SBMPC:
                     C = k_koll * np.linalg.norm(v_s - v_o) ** 2
 
                 # Overtaken by obstacle
-                OT = (np.dot(v_s, v_o)) > np.cos(np.deg2rad(self._params.PHI_OT_)) * np.linalg.norm(
-                    v_s
-                ) * np.linalg.norm(v_o) and np.linalg.norm(v_s) < np.linalg.norm(v_o)
+                OT = (
+                    np.dot(v_s, v_o) > np.cos(np.deg2rad(self._params.PHI_OT_)) * np.linalg.norm(v_s) * np.linalg.norm(v_o)
+                ) and np.linalg.norm(v_s) < np.linalg.norm(v_o)
 
                 # Obstacle on starboard side
                 SB = phi >= 0
@@ -273,31 +278,41 @@ class SBMPC:
                 )
 
                 # Crossing situation
-                CR = (np.dot(v_s, v_o)) < np.cos(np.deg2rad(self._params.PHI_CR_)) * np.linalg.norm(
-                    v_s
-                ) * np.linalg.norm(v_o) and (SB and psi_rel < 0)
+                CR = (
+                    np.dot(v_s, v_o) < np.cos(np.deg2rad(self._params.PHI_CR_)) * np.linalg.norm(v_s) * np.linalg.norm(v_o)
+                ) and (SB and psi_rel < 0)
 
                 mu = (SB and HO) or (CR and not OT)
 
             H0 = C * R + self._params.KAPPA_ * mu
 
-            if H0 > H1:
-                H1 = H0
+            H1 = max(H1, H0)
 
-        H2 = (
-            self._params.K_P_ * (1 - P_ca)
-            + self._params.K_CHI_ * Chi_ca**2
-            + self.delta_P(P_ca)
-            + self.delta_Chi(Chi_ca)
-        )
+        H2 = self._params.K_P_ * (1 - P_ca) + self._params.K_CHI_ * Chi_ca**2 + self.delta_P(P_ca) + self.delta_Chi(Chi_ca)
         cost = H1 + H2
 
         return cost
 
-    def delta_P(self, P_ca):
+    def delta_P(self, P_ca: float) -> float:
+        """Calculate the cost for speed change.
+
+        Args:
+            P_ca (float): Speed factor.
+
+        Returns:
+            float: Cost for speed change.
+        """
         return self._params.K_DP_ * abs(self._params.P_ca_last_ - P_ca)
 
-    def delta_Chi(self, Chi_ca):
+    def delta_Chi(self, Chi_ca: float) -> float:
+        """Calculate the cost for course change.
+
+        Args:
+            Chi_ca (float): Course offset.
+
+        Returns:
+            float: Cost for course change.
+        """
         d_chi = Chi_ca - self._params.Chi_ca_last_
         if d_chi > 0:
             return self._params.K_DCHI_SB_ * d_chi**2
@@ -306,7 +321,16 @@ class SBMPC:
         else:
             return 0
 
-    def rot2d(self, yaw: float, vec: np.ndarray):
+    def rot2d(self, yaw: float, vec: np.ndarray) -> np.ndarray:
+        """Rotate a 2D vector by a yaw angle.
+
+        Args:
+            yaw (float): Yaw angle in radians.
+            vec (np.ndarray): 2D vector to rotate.
+
+        Returns:
+            np.ndarray: Rotated 2D vector.
+        """
         R = np.array([[np.cos(yaw), -np.sin(yaw)], [np.sin(yaw), np.cos(yaw)]])
         return R @ vec
 
@@ -401,7 +425,7 @@ class ShipModel:
         self.os_x = self.A_ - self.B_
         self.os_y = self.D_ - self.C_
 
-    def linear_pred(self, state, u_d, psi_d):
+    def linear_pred(self, state: np.ndarray, u_d: float, psi_d: float) -> None:
         self.psi_[0] = mf.wrap_angle_to_pmpi(psi_d)
         self.x_[0] = state[0] + self.os_x * np.cos(state[2]) - self.os_y * np.sin(state[2])
         self.y_[0] = state[1] + self.os_x * np.sin(state[2]) + self.os_y * np.cos(state[2])
@@ -415,7 +439,6 @@ class ShipModel:
         r22 = np.cos(psi_d)
 
         for i in range(1, self.n_samp_):
-
             self.x_[i] = self.x_[i - 1] + self.DT_ * (r11 * self.u_[i - 1] + r12 * self.v_[i - 1])
             self.y_[i] = self.y_[i - 1] + self.DT_ * (r21 * self.u_[i - 1] + r22 * self.v_[i - 1])
             self.psi_[i] = psi_d  # self.psi_[i-1] + self.DT_*self.r_[i-1]
@@ -424,9 +447,18 @@ class ShipModel:
             self.r_[i] = 0  # math.atan2(np.sin(psi_d - self.psi_[i-1]), np.cos(psi_d - self.psi_[i-1]))
 
 
-def create_sbmpc_input(ships, os_idx):
-    """
-    Using direct values for now
+def create_sbmpc_input(ships: list, os_idx: int) -> tuple[float, float, np.ndarray, list]:
+    """Create input for SBMPC algorithm.
+
+    Using direct values for now.
+
+    Args:
+        ships (list): List of ship objects.
+        os_idx (int): Index of the ownship in the ships list.
+
+    Returns:
+        tuple[float, float, np.ndarray, list]: Tuple containing u_d, chi_d,
+            os_state, and obs_states.
     """
     u_d = ships[os_idx].u_d
     chi_d = ships[os_idx].chi_d
@@ -451,9 +483,15 @@ def create_sbmpc_input(ships, os_idx):
     return u_d, chi_d, os_state, obs_states
 
 
-def create_colav_input(ships, time):
-    """
-    Creates input data to use with PSB-MPC colav algorithm
+def create_colav_input(ships: list, time: float) -> dict:
+    """Creates input data to use with PSB-MPC colav algorithm.
+
+    Args:
+        ships (list): List of ship objects.
+        time (float): Current simulation time.
+
+    Returns:
+        dict: Dictionary containing colav input data.
     """
     colav_input = {}
 

@@ -1,32 +1,32 @@
-"""
-    Demonstrates how to use the PQ-RRT* algorithm with the colav-simulator. Note that the underlying ship model in the planner does not
-    match the ship model used from the colav-simulator, and thus should be tuned for usage outside this example.
+"""Demonstrates how to use the PQ-RRT* algorithm with the colav-simulator.
 
-    Remember to install the dependencies (COLAV-simulator) and rrt-rs https://github.com/NTNU-Autoship-Internal/rrt-rs before running this script.
+Note that the underlying ship model in the planner does not
+match the ship model used from the colav-simulator, and thus should be tuned for usage outside this example.
 
-    This script is also found in the rrt-rs repository examples folder.
+Remember to install the dependencies (COLAV-simulator) and rrt-rs
+https://github.com/NTNU-Autoship-Internal/rrt-rs before running this script.
 
-    Author: Trym Tengesdal
+This script is also found in the rrt-rs repository examples folder.
+
+Author: Trym Tengesdal
 """
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+
+import matplotlib.pyplot as plt
+import numpy as np
+import rrt_star_lib  # pyright: ignore[reportMissingImports]
+import seacharts.enc as senc
+from shapely import strtree
 
 import colav_simulator.common.map_functions as mapf
 import colav_simulator.common.paths as dp
-import colav_simulator.common.plotters as plotters
 import colav_simulator.core.colav.colav_interface as ci
-import colav_simulator.core.guidances as guidances
-import colav_simulator.core.models as models
-import colav_simulator.core.stochasticity as stochasticity
-import matplotlib.pyplot as plt
-import numpy as np
-import rrt_star_lib
-import seacharts.enc as senc
 from colav_simulator.behavior_generator import BehaviorGenerationMethod, PQRRTStarParams
+from colav_simulator.common import plotters
+from colav_simulator.core import guidances, models, stochasticity
 from colav_simulator.scenario_generator import ScenarioGenerator
 from colav_simulator.simulator import Simulator
-from shapely import strtree
 
 
 @dataclass
@@ -57,7 +57,7 @@ class RRTConfig:
     )
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "RRTConfig":  # noqa: D102
         config = RRTConfig(
             params=PQRRTStarParams.from_dict(config_dict["params"]),
             model=models.KinematicCSOGParams.from_dict(config_dict["model"]),
@@ -67,14 +67,15 @@ class RRTConfig:
         return config
 
 
-def parse_rrt_solution(soln: dict) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]:
+def parse_rrt_solution(soln: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]:
     """Parses the RRT solution.
 
     Args:
         soln (dict): Solution dictionary.
 
     Returns:
-        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]: Tuple of waypoints, trajectory, inputs and times and cost from the solution.
+        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, float]: Tuple of waypoints, trajectory,
+            inputs, times and cost from the RRT solution.
     """
     times = np.array(soln["times"])
     n_samples = len(times)
@@ -105,7 +106,7 @@ class RRTPlannerParams:
     rrt: RRTConfig = field(default_factory=lambda: RRTConfig())
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "RRTPlannerParams":  # noqa: D102
         config = RRTPlannerParams(
             los=guidances.LOSGuidanceParams.from_dict(config_dict["los"]),
             rrt=RRTConfig.from_dict(config_dict["pq-rrt"]),
@@ -115,6 +116,8 @@ class RRTPlannerParams:
 
 
 class PQRRTStar(ci.ICOLAV):
+    """PQ-RRT* planner."""
+
     def __init__(self, config: RRTPlannerParams) -> None:
         self._rrt_config = config.rrt
         self._rrt = rrt_star_lib.PQRRTStar(config.rrt.los, config.rrt.model, config.rrt.params)
@@ -131,7 +134,7 @@ class PQRRTStar(ci.ICOLAV):
         self._initialized = False
         self._t_prev: float = 0.0
 
-    def reset(self) -> None:
+    def reset(self) -> None:  # noqa: D102
         self._references = np.zeros((9, 1))
         self._t_prev = 0.0
         self._initialized = False
@@ -144,20 +147,20 @@ class PQRRTStar(ci.ICOLAV):
         self._map_origin = np.array([])
         self._los.reset()
 
-    def plan(
+    def plan(  # noqa: D102
         self,
         t: float,
-        waypoints: np.ndarray,
-        speed_plan: np.ndarray,
+        waypoints: np.ndarray,  # noqa: ARG002
+        speed_plan: np.ndarray,  # noqa: ARG002
         ownship_state: np.ndarray,
-        do_list: List[Tuple[int, np.ndarray, np.ndarray, float, float]],
-        enc: Optional[senc.ENC] = None,
-        goal_state: Optional[np.ndarray] = None,
-        w: Optional[stochasticity.DisturbanceData] = None,
+        do_list: list[tuple[int, np.ndarray, np.ndarray, float, float]],  # noqa: ARG002
+        enc: senc.ENC | None = None,
+        goal_state: np.ndarray | None = None,
+        w: stochasticity.DisturbanceData | None = None,  # noqa: ARG002
         **kwargs,
     ) -> np.ndarray:
-        assert goal_state is not None, "Goal state must be provided to the RRT"
-        assert enc is not None, "ENC must be provided to the RRT"
+        assert goal_state is not None, "Goal state must be provided to the RRT"  # noqa: S101
+        assert enc is not None, "ENC must be provided to the RRT"  # noqa: S101
         if not self._initialized:
             self._min_depth = 5  # mapf.find_minimum_depth(kwargs["os_draft"], enc)
             self._t_prev = t
@@ -182,7 +185,7 @@ class PQRRTStar(ci.ICOLAV):
                 return_on_first_solution=False,
                 verbose=True,
             )
-            self._rrt_waypoints, self._rrt_trajectory, self._rrt_inputs, times, cost = parse_rrt_solution(rrt_solution)
+            self._rrt_waypoints, self._rrt_trajectory, self._rrt_inputs, times, cost = parse_rrt_solution(rrt_solution)  # noqa: F841
 
             if enc is not None and t == 0.0:
                 plotters.plot_rrt_tree(self._rrt.get_tree_as_list_of_dicts(), enc)
@@ -221,10 +224,10 @@ class PQRRTStar(ci.ICOLAV):
         )
         return self._references
 
-    def get_current_plan(self) -> np.ndarray:
+    def get_current_plan(self) -> np.ndarray:  # noqa: D102
         return self._references
 
-    def get_colav_data(self) -> dict:
+    def get_colav_data(self) -> dict:  # noqa: D102
         if not self._initialized:
             return {
                 "nominal_trajectory": np.zeros((6, 1)),
@@ -240,7 +243,7 @@ class PQRRTStar(ci.ICOLAV):
                 "t": self._t_prev,
             }
 
-    def plot_results(self, ax_map: plt.Axes, enc: senc.ENC, plt_handles: dict, **kwargs) -> dict:
+    def plot_results(self, ax_map: plt.Axes, enc: senc.ENC, plt_handles: dict, **kwargs) -> dict:  # noqa: ARG002, D102
         if self._rrt_trajectory.size > 6:
             plt_handles["colav_nominal_trajectory"].set_xdata(self._rrt_trajectory[1, 0::4])
             plt_handles["colav_nominal_trajectory"].set_ydata(self._rrt_trajectory[0, 0::4])

@@ -1,30 +1,27 @@
-"""
-    behavior_generator.py
+"""behavior_generator.py.
 
-    Summary:
-        Contains a class for generating random ship behaviors/waypoints+speed plans/trajectories.
+Summary:
+Contains a class for generating random ship behaviors/waypoints+speed plans/trajectories.
 
-    Author: Trym Tengesdal
+Author: Trym Tengesdal
 """
 
 import time
 from dataclasses import asdict, dataclass, field
 from enum import Enum
-from typing import Optional, Tuple
+
+import numpy as np
+import seacharts.enc as senc
 
 import colav_simulator.common.map_functions as mapf
 import colav_simulator.common.math_functions as mf
 import colav_simulator.common.miscellaneous_helper_methods as mhm
-import colav_simulator.common.plotters as plotters
-import colav_simulator.core.guidances as guidances
-import colav_simulator.core.models as models
-import colav_simulator.core.ship as ship
-import numpy as np
-import seacharts.enc as senc
+from colav_simulator.common import plotters
+from colav_simulator.core import guidances, models, ship
 
 RRT_LIB_FOUND = True
 try:
-    import rrt_star_lib
+    import rrt_star_lib  # pyright: ignore[reportMissingImports]
 except ModuleNotFoundError as err:
     print(f"Warning: rrt_star_lib not found! Error msg: {err}")
     RRT_LIB_FOUND = False
@@ -54,11 +51,11 @@ class PQRRTStarParams:
     )
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "PQRRTStarParams":  # noqa: D102
         config = cls(**config_dict)
         return config
 
-    def to_dict(self):
+    def to_dict(self) -> dict:  # noqa: D102
         return asdict(self)
 
 
@@ -77,11 +74,11 @@ class RRTStarParams:
     gamma: float = 1500.0  # Nearest neighbor search radius parameter
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "RRTStarParams":  # noqa: D102
         config = cls(**config_dict)
         return config
 
-    def to_dict(self):
+    def to_dict(self) -> dict:  # noqa: D102
         return asdict(self)
 
 
@@ -98,11 +95,11 @@ class RRTParams:
     steering_acceptance_radius: float = 10.0  # Radius of acceptance for steering (using LOS)
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "RRTParams":  # noqa: D102
         config = cls(**config_dict)
         return config
 
-    def to_dict(self):
+    def to_dict(self) -> dict:  # noqa: D102
         return asdict(self)
 
 
@@ -134,7 +131,7 @@ class RRTConfig:
     )
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "RRTConfig":  # noqa: D102
         config = RRTConfig()
         if "max_sample_adjustments" in config_dict["params"]:
             config.params = PQRRTStarParams.from_dict(config_dict["params"])
@@ -146,7 +143,7 @@ class RRTConfig:
         config.los = guidances.LOSGuidanceParams.from_dict(config_dict["los"])
         return config
 
-    def to_dict(self):
+    def to_dict(self) -> dict:  # noqa: D102
         output = asdict(self)
         output["params"] = self.params.to_dict()
         output["model"] = self.model.to_dict()
@@ -172,16 +169,25 @@ class RRTBehaviorSamplingMethod(Enum):
     NOTE: Naturally only applicable when RRT-based behavior generation is used.
 
     Unless Optimal is used, the procedure is as follows:
-    1: A position sample is generated based on the sampling method (random, CPA-based, OwnshipGoal, etc.)
-    2: The tree built by the RRT-based planner is searched for a node that is closest to the sample, and the trajectory from the root to this node is extracted.
+    1: A position sample is generated based on the sampling method (random,
+    CPA-based, OwnshipGoal, etc.)
+    2: The tree built by the RRT-based planner is searched for a node that is
+    closest to the sample, and the trajectory from the root to this node is
+    extracted.
     """
 
     Optimal = 0  # Sample waypoints and speed plans as the optimal RRT solution
-    UniformlyInMap = 1  # Sample waypoints and speed plans from the RRT tree with goal/endpoint near a random map position (inside the planning bbox)
-    CourseCorridor = 2  # Sample waypoints and speed plans from the RRT tree with endpoint inside a corridor along ones initial course/heading
-    CPA = 3  # Sample waypoints and speed plans from the RRT tree with endpoint in the direction of a random multivariate gaussian centered on the CPA position
-    OwnshipGoal = 4  # Sample waypoints and speed plans from the RRT tree with endpoints near a multivariate gaussian sample centered on the ownship goal
-    OwnshipWaypointCorridor = 5  # Sample waypoints and speed plans from the RRT tree with endpoint near a sample inside the own-ship waypoint corridor.
+    UniformlyInMap = 1  # Sample waypoints and speed plans from the RRT tree
+    # with goal/endpoint near a random map position (inside the planning bbox)
+    CourseCorridor = 2  # Sample waypoints and speed plans from the RRT tree
+    # with endpoint inside a corridor along ones initial course/heading
+    CPA = 3  # Sample waypoints and speed plans from the RRT tree with endpoint
+    # in the direction of a random multivariate gaussian centered on the CPA
+    # position
+    OwnshipGoal = 4  # Sample waypoints and speed plans from the RRT tree with
+    # endpoints near a multivariate gaussian sample centered on the ownship goal
+    OwnshipWaypointCorridor = 5  # Sample waypoints and speed plans from the
+    # RRT tree with endpoint near a sample inside the own-ship waypoint corridor.
     Randomized = 6  # Randomize any of the above methods
 
 
@@ -203,24 +209,24 @@ class Config:
         default_factory=lambda: [-45.0, 45.0]
     )  # Range of [min, max] change in angle between randomly created waypoints
     hazard_buffer: float = 0.0  # Buffer to add to hazards when creating safe sea triangulation
-    rrt: Optional[RRTConfig] = field(
+    rrt: RRTConfig | None = field(
         default_factory=lambda: RRTConfig(
             params=RRTParams(), model=models.KinematicCSOGParams(), los=guidances.LOSGuidanceParams()
         )
     )
-    rrtstar: Optional[RRTConfig] = field(
+    rrtstar: RRTConfig | None = field(
         default_factory=lambda: RRTConfig(
             params=RRTStarParams(), model=models.KinematicCSOGParams(), los=guidances.LOSGuidanceParams()
         )
     )
-    pqrrtstar: Optional[RRTConfig] = field(
+    pqrrtstar: RRTConfig | None = field(
         default_factory=lambda: RRTConfig(
             params=PQRRTStarParams(), model=models.KinematicCSOGParams(), los=guidances.LOSGuidanceParams()
         )
     )
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "Config":  # noqa: D102
         config = Config(
             ownship_method=BehaviorGenerationMethod[config_dict["ownship_method"]],
             target_ship_method=BehaviorGenerationMethod[config_dict["target_ship_method"]],
@@ -243,7 +249,7 @@ class Config:
             config.rrt = RRTConfig.from_dict(config_dict["rrt"])
         return config
 
-    def to_dict(self):
+    def to_dict(self) -> dict:  # noqa: D102
         output = asdict(self)
         output["rrt"] = self.rrt.to_dict()
         output["rrtstar"] = self.rrtstar.to_dict()
@@ -274,11 +280,11 @@ class BehaviorGenerator:
         self._rrtstar_list: list = []
         self._pqrrtstar_list: list = []
         self._grounding_hazards: list = []
-        self._seed: Optional[int] = None
+        self._seed: int | None = None
         self._bg_method_list: list = []
         self._initialized: bool = False
 
-    def seed(self, seed: Optional[int] = None) -> None:
+    def seed(self, seed: int | None = None) -> None:
         """Seeds the behavior generator, i.e. all RRTs/pqrrtstars.
 
         Args:
@@ -324,7 +330,7 @@ class BehaviorGenerator:
         self._pqrrtstar_list = []
         self._grounding_hazards = []
 
-    def _initialize_rrts(self, n_rrts: int) -> Tuple[list, list, list]:
+    def _initialize_rrts(self, n_rrts: int) -> tuple[list, list, list]:
         """Initializes the RRTs.
 
         Args:
@@ -349,9 +355,12 @@ class BehaviorGenerator:
         return self._rrt_list, self._rrtstar_list, self._pqrrtstar_list
 
     def initialize_data_structures(self, n_ships: int) -> None:
-        """Initializes data structures and RRTs (if enabled). The number of RRTs is determined by the number of ships.
+        """Initializes data structures and RRTs (if enabled).
 
-        If the number of ships in the input list is different from the number of RRTs, the data structures and RRTs are either extended or truncated to match the number of ships.
+        The number of RRTs is determined by the number of ships. If the number
+        of ships in the input list is different from the number of RRTs, the
+        data structures and RRTs are either extended or truncated to match the
+        number of ships.
 
         Args:
             n_ships (int): Number of ships to be considered in the simulation.
@@ -368,21 +377,21 @@ class BehaviorGenerator:
             self._config.ownship_method.value >= BehaviorGenerationMethod.RRT.value
             or self._config.target_ship_method.value >= BehaviorGenerationMethod.RRT.value
         ):
-            assert (
-                RRT_LIB_FOUND
-            ), "You specified usage of RRT for ship behavior generation, but the RRT library is not found."
+            if not RRT_LIB_FOUND:
+                msg = "You specified usage of RRT for ship behavior generation, " "but the RRT library is not found."
+                raise ValueError(msg)
             self._rrt_list, self._rrtstar_list, self._pqrrtstar_list = self._initialize_rrts(n_ships)
 
-    def setup_enc(
-        self, enc: senc.ENC, safe_sea_cdt: list, safe_sea_cdt_weights: list, show_plots: bool = False
-    ) -> None:
-        """Sets up the environment for the behavior generator, by transferring ENC data and creating a safe sea triangulation.
+    def setup_enc(self, enc: senc.ENC, safe_sea_cdt: list, safe_sea_cdt_weights: list, show_plots: bool = False) -> None:
+        """Sets up the environment for the behavior generator.
+
+        Transfers ENC data and creates a safe sea triangulation.
 
         Args:
             enc (senc.ENC): Electronic navigational chart.
             safe_sea_cdt (list): Safe sea triangulation.
             safe_sea_cdt_weights (list): Weights for the safe sea triangulation.
-            show_plots (bool, optional): Whether to show ENC plots. Defaults to False.
+            show_plots (bool): Whether to show ENC plots. Defaults to False.
         """
         self._enc = enc
         if show_plots:
@@ -403,15 +412,18 @@ class BehaviorGenerator:
         simulation_timespan: float,
         show_plots: bool = False,
     ) -> None:
-        """Setup the environment for the behavior generator by e.g. transferring ENC data to
-        the RRTs if configured, and creating a safe sea triangulation for more efficient sampling.
+        """Setup the environment for the behavior generator.
+
+        Transfers ENC data to the RRTs if configured, and creates a safe sea
+        triangulation for more efficient sampling.
 
         Args:
             rng (np.random.Generator): Random number generator.
             ship_list (list): List of ships to be considered in simulation.
-            ship_replan_flags (list): List of flags indicating whether a ship should have a new behavior generated.
+            ship_replan_flags (list): List of flags indicating whether a ship
+                should have a new behavior generated.
             simulation_timespan (float): Simulation timespan.
-            show_plots (bool, optional): Whether to show plots. Defaults to False.
+            show_plots (bool): Whether to show plots. Defaults to False.
         """
         ownship = ship_list[0]
         self._simulation_timespan = simulation_timespan
@@ -426,24 +438,28 @@ class BehaviorGenerator:
                 show_plots=show_plots,
             )
 
-    def setup_ship(
+    def setup_ship(  # noqa: PLR0912, PLR0915
         self,
         rng: np.random.Generator,
         ship_obj: ship.Ship,
         replan: bool,
         simulation_timespan: float,
-        ownship: Optional[ship.Ship] = None,
+        ownship: ship.Ship | None = None,
         show_plots: bool = False,
     ) -> None:
-        """Sets up a ship for behavior generation, by generating a behavior if the ship has not been configured fully yet.
+        """Sets up a ship for behavior generation.
+
+        Generates a behavior if the ship has not been configured fully yet.
 
         Args:
             rng (np.random.Generator): Random number generator.
             ship_obj (ship.Ship): Ship to be considered in simulation.
-            replan (bool): Flag indicating whether a ship should have a new behavior generated when using RRT.
+            replan (bool): Flag indicating whether a ship should have a new
+                behavior generated when using RRT.
             simulation_timespan (float): Simulation timespan.
-            ownship (ship.Ship, optional): The ownship, used for generating target ship RRT-goals.
-            show_plots (bool, optional): Whether to show plots. Defaults to False.
+            ownship (ship.Ship | None): The ownship, used for generating target
+                ship RRT-goals. Defaults to None.
+            show_plots (bool): Whether to show plots. Defaults to False.
         """
         method = self._config.target_ship_method if ship_obj.id > 0 else self._config.ownship_method
         if method == BehaviorGenerationMethod.Randomize:
@@ -462,7 +478,9 @@ class BehaviorGenerator:
 
         ownship_bbox = None
         if ship_obj.id > 0:
-            assert ownship is not None, "Ownship must be specified when generating target ship behavior using RRT."
+            if ownship is None:
+                msg = "Ownship must be specified when generating target ship behavior using RRT."
+                raise ValueError(msg)
             target_ship_state = ship_obj.csog_state
             if ownship.waypoints.size > 0:
                 ownship_waypoints = ownship.waypoints
@@ -558,10 +576,12 @@ class BehaviorGenerator:
         Args:
             ship_id (int): Ship ID.
         """
-        assert (
-            RRT_LIB_FOUND
-        ), "You specified usage of RRT for ship behavior generation, but the RRT library is not found."
-        assert ship_id < len(self._rrt_list), "Invalid ship ID."
+        if not RRT_LIB_FOUND:
+            msg = "You specified usage of RRT for ship behavior generation, " "but the RRT library is not found."
+            raise ValueError(msg)
+        if ship_id >= len(self._rrt_list):
+            msg = "Invalid ship ID."
+            raise ValueError(msg)
         if self._bg_method_list[ship_id] == BehaviorGenerationMethod.RRT:
             plotters.plot_rrt_tree(self._rrt_list[ship_id].get_tree_as_list_of_dicts(), self._enc)
         elif self._bg_method_list[ship_id] == BehaviorGenerationMethod.RRTStar:
@@ -609,25 +629,28 @@ class BehaviorGenerator:
         ship_config_list: list,
         simulation_timespan: float,
         show_plots: bool = True,
-    ) -> Tuple[list, list]:
-        """Generates ship behaviors in the form of waypoints + speed plan that the ships will follow, for ships that have not been configured fully yet.
+    ) -> tuple[list, list]:
+        """Generates ship behaviors in the form of waypoints + speed plan.
+
+        For ships that have not been configured fully yet.
 
         Args:
             rng (np.random.Generator): Random number generator.
             ship_list (list): List of ships to be considered in simulation.
             ship_config_list (list): List of ship configurations.
             simulation_timespan (float): Simulation timespan.
-            show_plots (bool, optional): Whether to show plots. Defaults to False.
+            show_plots (bool): Whether to show plots. Defaults to True.
 
         Returns:
-            - Tuple[np.ndarray, np.ndarray, Optional[np.ndarray]]: Tuple containing the waypoints, speed plan and possibly trajectory for the ship.
+            tuple[list, list]: Tuple containing the waypoints, speed plan and
+                possibly trajectory for the ship.
         """
         ownship = ship_list[0]
-        for ship_cfg_idx, ship_config in enumerate(ship_config_list):
+        for ship_cfg_idx, ship_config_item in enumerate(ship_config_list):
             ship_obj, ship_config = self.generate_ship_behavior(
                 rng,
                 ship_list[ship_cfg_idx],
-                ship_config,
+                ship_config_item,
                 simulation_timespan,
                 ownship=ownship,
                 reuse_old_behavior=not self._ship_replan_flags[ship_cfg_idx],
@@ -645,9 +668,9 @@ class BehaviorGenerator:
         ship_obj: ship.Ship,
         ship_config: ship.Config,
         simulation_timespan: float,
-        ownship: Optional[ship.Ship] = None,
+        ownship: ship.Ship | None = None,
         reuse_old_behavior: bool = False,
-    ) -> Tuple[ship.Ship, ship.Config]:
+    ) -> tuple[ship.Ship, ship.Config]:
         """Generates a ship behavior using the specified method by the ship configuration.
 
         Args:
@@ -706,8 +729,7 @@ class BehaviorGenerator:
                 n_wps=waypoints.shape[1],
             )
         elif (
-            RRT_LIB_FOUND
-            and BehaviorGenerationMethod.RRT.value <= method.value <= BehaviorGenerationMethod.PQRRTStar.value
+            RRT_LIB_FOUND and BehaviorGenerationMethod.RRT.value <= method.value <= BehaviorGenerationMethod.PQRRTStar.value
         ):
             waypoints, speed_plan, _ = self.generate_rrt_behavior(rng, ship_obj, ownship, method, show_plots=True)
 
@@ -716,14 +738,14 @@ class BehaviorGenerator:
         ship_obj.set_nominal_plan(ship_config.waypoints, ship_config.speed_plan)
         return ship_obj, ship_config
 
-    def generate_rrt_behavior(
+    def generate_rrt_behavior(  # noqa: C901, PLR0912, PLR0915
         self,
         rng: np.random.Generator,
         ship_obj: ship.Ship,
         ownship: ship.Ship,
         rrt_method: BehaviorGenerationMethod,
-        show_plots: bool = True,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+        show_plots: bool = True,  # noqa: ARG002
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Generates a ship behavior using an RRT-variant.
 
         Args:
@@ -731,16 +753,19 @@ class BehaviorGenerator:
             ship_obj (ship.Ship): The ship to generate a behavior for.
             ownship (ship.Ship): The ownship.
             rrt_method (BehaviorGenerationMethod): The RRT method to use.
-            show_plots (bool, optional): Whether to show plots. Defaults to True.
+            show_plots (bool): Whether to show plots. Defaults to True.
 
         Returns:
-            Tuple[np.ndarray, np.ndarray, np.ndarray]: Tuple containing the resulting waypoints, speed plan and trajectory.
+            tuple[np.ndarray, np.ndarray, np.ndarray]: Tuple containing the
+                resulting waypoints, speed plan and trajectory.
         """
-        assert (
-            rrt_method == BehaviorGenerationMethod.RRT
-            or rrt_method == BehaviorGenerationMethod.RRTStar
-            or rrt_method == BehaviorGenerationMethod.PQRRTStar
-        )
+        if rrt_method not in (
+            BehaviorGenerationMethod.RRT,
+            BehaviorGenerationMethod.RRTStar,
+            BehaviorGenerationMethod.PQRRTStar,
+        ):
+            msg = f"Invalid RRT method: {rrt_method}"
+            raise ValueError(msg)
 
         if rrt_method == BehaviorGenerationMethod.RRT:
             planner = self._rrt_list[ship_obj.id]
@@ -800,7 +825,7 @@ class BehaviorGenerator:
         corridor_diameter = 150.0
         for s in range(n_samples):
             time_now = time.time()
-            for iter in range(10):
+            for _iter in range(10):
                 if sampling_method.value == RRTBehaviorSamplingMethod.UniformlyInMap.value:
                     x_rand = rng.uniform(planning_bbox[1], planning_bbox[3])
                     y_rand = rng.uniform(planning_bbox[0], planning_bbox[2])
@@ -814,7 +839,7 @@ class BehaviorGenerator:
                             ship_obj.csog_state[2] * np.sin(ship_obj.csog_state[3]),
                         ]
                     )
-                    t_cpa, d_cpa = mf.cpa(p_target, v_target, p_os, v_os)
+                    t_cpa, _d_cpa = mf.cpa(p_target, v_target, p_os, v_os)
                     p_target_cpa = p_target + v_target * (
                         t_cpa + 50.0
                     )  # add 50 seconds to CPA time to prevent the ship from stopping at cpa
@@ -827,7 +852,7 @@ class BehaviorGenerator:
                     )
                     corridor_poly = mapf.generate_enveloping_polygon(corridor_waypoints, corridor_diameter)
                     bbox_poly = mapf.bbox_to_polygon(planning_bbox)
-                    corridor_poly_inside_bbox = corridor_poly.intersection(bbox_poly)
+                    corridor_poly.intersection(bbox_poly)
                     # if s == 0 and show_plots:
                     #     self._enc.draw_polygon(corridor_poly_inside_bbox, color="black", alpha=0.3)
                     p_rand = mhm.sample_from_waypoint_corridor(rng, corridor_waypoints, 2.0 * corridor_diameter)
@@ -851,7 +876,9 @@ class BehaviorGenerator:
             sample_runtimes[s] = t_elapsed
 
         # print(
-        #     f"RRT-based planner behavior sampling time: {sample_runtimes.mean():.5f} +/- {sample_runtimes.std():.5f} s | (min, max): {sample_runtimes.min():.5f}, {sample_runtimes.max():.5f} s"
+        #     f"RRT-based planner behavior sampling time: "
+        #     f"{sample_runtimes.mean():.5f} +/- {sample_runtimes.std():.5f} s | "
+        #     f"(min, max): {sample_runtimes.min():.5f}, {sample_runtimes.max():.5f} s"
         # )
         return waypoints, speed_plan, trajectory
 
@@ -862,7 +889,7 @@ class BehaviorGenerator:
         simulation_timespan: float,
         horizon_modifier: float = 5.0,
         min_dist_to_hazards: float = 20.0,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Generates waypoints and speed plan for a ship with constant speed and course.
 
         Args:
@@ -903,21 +930,26 @@ class BehaviorGenerator:
         psi: float,
         draft: float = 2.0,
         min_dist_to_hazards: float = 20.0,
-        n_wps: Optional[int] = None,
-    ) -> Tuple[np.ndarray, bool]:
+        n_wps: int | None = None,
+    ) -> tuple[np.ndarray, bool]:
         """Creates random waypoints starting from a ship position and heading.
 
         Args:
-            - rng (np.random.Generator): Random number generator.
-            - x (float): x position (north) of the ship.
-            - y (float): y position (east) of the ship.
-            - psi (float): heading of the ship in radians.
-            - draft (float, optional): How deep the ship keel is into the water. Defaults to 5.
-            - min_dist_to_hazards (float, optional): Minimum distance to hazards. Defaults to 20.0.
-            - n_wps (Optional[int]): Number of waypoints to create.
+            rng (np.random.Generator): Random number generator.
+            x (float): x position (north) of the ship.
+            y (float): y position (east) of the ship.
+            psi (float): heading of the ship in radians.
+            draft (float): How deep the ship keel is into the water.
+                Defaults to 2.0.
+            min_dist_to_hazards (float): Minimum distance to hazards.
+                Defaults to 20.0.
+            n_wps (int | None): Number of waypoints to create. Defaults to
+                None.
 
         Returns:
-            - Tuple[np.ndarray, bool]: 2 x n_wps array containing the waypoints, and a boolean indicating whether the waypoints were clipped to the ENC bbox.
+            tuple[np.ndarray, bool]: 2 x n_wps array containing the waypoints,
+                and a boolean indicating whether the waypoints were clipped to
+                the ENC bbox.
         """
         if n_wps is None:
             n_wps = rng.integers(self._config.n_wps_range[0], self._config.n_wps_range[1] + 1)
@@ -934,15 +966,11 @@ class BehaviorGenerator:
             for _ in range(max_iter):
                 iter_count += 1
 
-                distance_wp_to_wp = rng.uniform(
-                    self._config.waypoint_dist_range[0], self._config.waypoint_dist_range[1]
-                )
+                distance_wp_to_wp = rng.uniform(self._config.waypoint_dist_range[0], self._config.waypoint_dist_range[1])
 
                 alpha = 0
                 if i > 1:
-                    alpha = np.deg2rad(
-                        rng.uniform(self._config.waypoint_ang_range[0], self._config.waypoint_ang_range[1])
-                    )
+                    alpha = np.deg2rad(rng.uniform(self._config.waypoint_ang_range[0], self._config.waypoint_ang_range[1]))
 
                 new_wp = np.array(
                     [
@@ -995,19 +1023,20 @@ class BehaviorGenerator:
         return waypoints, clipped_to_close_hazard_point or clipped_to_bbox
 
     def generate_random_speed_plan(
-        self, rng: np.random.Generator, U: float, U_min: float = 2.0, U_max: float = 8.0, n_wps: Optional[int] = None
+        self, rng: np.random.Generator, U: float, U_min: float = 2.0, U_max: float = 8.0, n_wps: int | None = None
     ) -> np.ndarray:
-        """Creates a random speed plan using the input speed and min/max speed of the ship.
+        """Creates a random speed plan using the input speed and min/max speed.
 
         Args:
-            - rng (np.random.Generator): Random number generator.
-            - U (float): The ship's speed.
-            - U_min (float, optional): The ship's minimum speed. Defaults to 2.0.
-            - U_max (float, optional): The ship's maximum speed. Defaults to 8.0.
-            - n_wps (Optional[int]): Number of waypoints to create.
+            rng (np.random.Generator): Random number generator.
+            U (float): The ship's speed.
+            U_min (float): The ship's minimum speed. Defaults to 2.0.
+            U_max (float): The ship's maximum speed. Defaults to 8.0.
+            n_wps (int | None): Number of waypoints to create. Defaults to
+                None.
 
         Returns:
-            - np.ndarray: 1 x n_wps array containing the speed plan.
+            np.ndarray: 1 x n_wps array containing the speed plan.
         """
         if n_wps is None:
             n_wps = rng.integers(self._config.n_wps_range[0], self._config.n_wps_range[1] + 1)

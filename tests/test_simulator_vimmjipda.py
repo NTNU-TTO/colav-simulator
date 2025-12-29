@@ -1,13 +1,14 @@
-"""
-Test module for the Simulator class.
+"""Test module for the Simulator class.
 
 Shows how to use the simulator with a colav system and the VIMMJIPDA tracker.
 
 Requires installation of the vimmjipda package at https://github.com/NTNU-Autoship-Internal/vimmjipda
 """
 
+import importlib
 from pathlib import Path
 
+import pytest
 import vimmjipda.vimmjipda_tracker_interface as vti
 
 import colav_simulator.common.paths as dp
@@ -16,6 +17,10 @@ import colav_simulator.scenario_generator as sg
 import colav_simulator.simulator as sim
 
 
+@pytest.mark.skipif(
+    not importlib.util.find_spec("vimmjipda"),
+    reason="vimmjipda not found",
+)
 def test_simulator_vimmjipda() -> None:
     vimmjipda_config_path = (
         Path.home() / "vimmjipda/config/vimmjipda.yaml"
@@ -32,12 +37,12 @@ def test_simulator_vimmjipda() -> None:
     simulator = sim.Simulator(config=simconfig)
     simulator.toggle_liveplot_visibility(True)
 
-    scenario_data_list = scenario_generator.generate_configured_scenarios()
-    output1 = simulator.run(
-        scenario_data_list,
-        colav_systems=[(0, sbmpc_obj)],
-        trackers=[(0, vimmjipda_tracker)],
-    )
+    # scenario_data_list = scenario_generator.generate_configured_scenarios()
+    # simulator.run(
+    #     scenario_data_list,
+    #     colav_systems=[(0, sbmpc_obj)],
+    #     trackers=[(0, vimmjipda_tracker)],
+    # )
 
     scenario_name = "rlmpc_scenario_ms_channel_vimmjipda"
     scenario_data = scenario_generator.generate(
@@ -51,7 +56,7 @@ def test_simulator_vimmjipda() -> None:
         delete_existing_files=True,
     )
     scenario_data_list = [scenario_data]
-    output2 = simulator.run(
+    simulator.run(
         scenario_data_list,
         colav_systems=[(0, sbmpc_obj)],
         trackers=[(0, vimmjipda_tracker)],

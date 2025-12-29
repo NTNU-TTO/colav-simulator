@@ -1,23 +1,22 @@
-"""
-    guidance.py
+"""guidance.py.
 
-    Summary:
-        Contains class definitions for guidance methods.
-        Every class must adhere to the model interface IGuidance.
+Summary:
+Contains class definitions for guidance methods.
+Every class must adhere to the model interface IGuidance.
 
-    Author: Trym Tengesdal
+Author: Trym Tengesdal
 """
 
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field
-from typing import Optional, Tuple
+
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy.interpolate as interp
 
 import colav_simulator.common.config_parsing as cp
 import colav_simulator.common.math_functions as mf
 import colav_simulator.common.miscellaneous_helper_methods as mhm
-import matplotlib.pyplot as plt
-import numpy as np
-import scipy.interpolate as interp
 
 
 @dataclass
@@ -40,10 +39,10 @@ class LOSGuidanceParams:
     cross_track_error_int_threshold: float = 50.0
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "LOSGuidanceParams":  # noqa: D102
         return LOSGuidanceParams(**config_dict)
 
-    def to_dict(self):
+    def to_dict(self) -> dict:  # noqa: D102
         return asdict(self)
 
 
@@ -51,11 +50,11 @@ class LOSGuidanceParams:
 class Config:
     """Configuration class for managing guidance method parameters."""
 
-    los: Optional[LOSGuidanceParams] = field(default_factory=lambda: LOSGuidanceParams())
-    ktp: Optional[bool] = None
+    los: LOSGuidanceParams | None = field(default_factory=lambda: LOSGuidanceParams())
+    ktp: bool | None = None
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "Config":  # noqa: D102
         config = Config()
         if "los" in config_dict:
             config.los = cp.convert_settings_dict_to_dataclass(LOSGuidanceParams, config_dict["los"])
@@ -67,7 +66,7 @@ class Config:
 
         return config
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict:  # noqa: D102
         config_dict = {}
 
         if self.los is not None:
@@ -80,26 +79,31 @@ class Config:
 
 
 class IGuidance(ABC):
-    """The InterfaceGuidance class is abstract and used to force
-    the implementation of the below methods for all subclasses (guidance strategies),
-    to comply with the guidance interface.
+    """The InterfaceGuidance class is abstract and used to force implementation.
+
+    Forces the implementation of the below methods for all subclasses (guidance
+    strategies), to comply with the guidance interface.
     """
 
     @abstractmethod
     def compute_references(
-        self, waypoints: np.ndarray, speed_plan: np.ndarray, times: Optional[np.ndarray], xs: np.ndarray, dt: float
+        self, waypoints: np.ndarray, speed_plan: np.ndarray, times: np.ndarray | None, xs: np.ndarray, dt: float
     ) -> np.ndarray:
         """Computes guidance reference states for the ship controller to track.
 
         Args:
-            waypoints (np.ndarray): The waypoints to follow, Dimensions: [2, N] composed of the waypoint NE coordinates.
+            waypoints (np.ndarray): The waypoints to follow, Dimensions: [2, N]
+                composed of the waypoint NE coordinates.
             speed_plan (np.ndarray): Reference speeds at each waypoint.
-            times (Optional[np.ndarray]): Optional array corresponding to arrival times at each waypoint.
-            xs (np.ndarray): The ownship 3DOF state [x, y, psi, u, v, r]^T or [x ,y, chi, U, 0, 0]^T in case of a kinematic CSOG model.
-            dt (float): Time step
+            times (np.ndarray | None): Optional array corresponding to arrival times
+                at each waypoint.
+            xs (np.ndarray): The ownship 3DOF state [x, y, psi, u, v, r]^T or [x, y,
+                chi, U, 0, 0]^T in case of a kinematic CSOG model.
+            dt (float): Time step.
 
         Returns:
-            np.ndarray: References of dimension 9 x N (typically N = 1), consisting of ref poses, velocities and accelerations.
+            np.ndarray: References of dimension 9 x N (typically N = 1), consisting
+                of ref poses, velocities and accelerations.
         """
 
     @abstractmethod
@@ -109,14 +113,15 @@ class IGuidance(ABC):
 
 class GuidanceBuilder:
     @classmethod
-    def construct_guidance(cls, config: Optional[Config] = None) -> Optional[IGuidance]:
-        """Builds a guidance method from the configuration
+    def construct_guidance(cls, config: Config | None = None) -> IGuidance | None:
+        """Builds a guidance method from the configuration.
 
         Args:
             config (Optional[guidance.Config]): Guidance configuration. Defaults to None.
 
         Returns:
-            Guidance: Guidance system as specified by the configuration, e.g. a LOSGuidance.
+            IGuidance | None: Guidance system as specified by the configuration,
+                e.g. a LOSGuidance.
         """
         if config and config.los:
             return LOSGuidance(config.los)
@@ -156,27 +161,31 @@ class KinematicTrajectoryPlanner(IGuidance):
         self._heading_waypoints = np.array([])
         self._final_arc_length = 0.0
 
-    def compute_splines(
+    def compute_splines(  # noqa: PLR0915
         self,
         waypoints: np.ndarray,
         speed_plan: np.ndarray,
-        times: Optional[np.ndarray] = None,
+        times: np.ndarray | None = None,
         arc_length_parameterization: bool = True,
-    ) -> Tuple[interp.BSpline, interp.BSpline, interp.PchipInterpolator, interp.PchipInterpolator, float]:
+    ) -> tuple[interp.BSpline, interp.BSpline, interp.PchipInterpolator, interp.PchipInterpolator, float]:
         """Converts waypoints and speed plan into C² cubic splines.
 
-        NOTE:
-            The waypoints should be equidistant to ensure that the spline is well-behaved.
-            Assumes validated inputs.
+        Note:
+            The waypoints should be equidistant to ensure that the spline is
+            well-behaved. Assumes validated inputs.
 
-         Args:
-            waypoints (np.array): 2 x n_wps waypoints array to follow.
-            speed_plan (np.array): 1 x n_wps speed plan array to follow.
-            times (Optional[np.array]): 1 x n_wps of time instances corresponding to the waypoints.
-            arc_length_parameterization (bool): Whether to parameterize the splines by arc length or not.
+        Args:
+            waypoints (np.ndarray): 2 x n_wps waypoints array to follow.
+            speed_plan (np.ndarray): 1 x n_wps speed plan array to follow.
+            times (np.ndarray | None): 1 x n_wps of time instances corresponding to
+                the waypoints.
+            arc_length_parameterization (bool): Whether to parameterize the splines
+                by arc length or not.
 
         Returns:
-            Tuple[interp.BSpline, interp.BSpline, interp.PchipInterpolator, interp.PchipInterpolator, float]: Splines for x, y, heading and speed. The final arc length of the trajectory is also returned.
+            tuple[interp.BSpline, interp.BSpline, interp.PchipInterpolator, interp.PchipInterpolator, float]:
+                Splines for x, y, heading and speed. The final arc length of the
+                trajectory is also returned.
         """
         _, n_wps = waypoints.shape
         mod_waypoints = waypoints.copy()
@@ -198,9 +207,13 @@ class KinematicTrajectoryPlanner(IGuidance):
                 times = np.insert(times, 1, np.mean(times[:2]))
             n_wps += 1
 
-        # add artificial waypoint just beyond the last, to ensure that the spline is well-behaved
+        # add artificial waypoint just beyond the last, to ensure that the spline is
+        # well-behaved
         mod_waypoints = np.insert(
-            mod_waypoints, n_wps, mod_waypoints[:, -1] + 2.0 * (mod_waypoints[:, -1] - mod_waypoints[:, -2]), axis=1
+            mod_waypoints,
+            n_wps,
+            mod_waypoints[:, -1] + 2.0 * (mod_waypoints[:, -1] - mod_waypoints[:, -2]),
+            axis=1,
         )
         mod_speed_plan = np.insert(mod_speed_plan, n_wps, mod_speed_plan[-1])
         n_wps += 1
@@ -264,21 +277,29 @@ class KinematicTrajectoryPlanner(IGuidance):
         self._s = mf.sat(self._s + dt * self._s_dot, 0.0, 1.0)
 
     def compute_references(
-        self, waypoints: np.ndarray, speed_plan: np.ndarray, times: Optional[np.ndarray], xs: np.ndarray, dt: float
+        self,
+        waypoints: np.ndarray,
+        speed_plan: np.ndarray,
+        times: np.ndarray | None,  # noqa: ARG002
+        xs: np.ndarray,  # noqa: ARG002
+        dt: float,  # noqa: ARG002
     ) -> np.ndarray:
-        """Converts waypoints and speed plan into C² cubic spline,
-         from which 3DOF reference states (not necessarily feasible) are computed.
+        """Converts waypoints and speed plan into C² cubic spline.
 
-        NOTE:
-            The waypoints should be equidistant to ensure that the spline is well-behaved.
-            Assumes validated inputs.
+        From which 3DOF reference states (not necessarily feasible) are computed.
 
-         Args:
-            waypoints (np.array): 2 x n_wps waypoints array to follow.
-            speed_plan (np.array): 1 x n_wps speed plan array to follow.
-            times (Optional[np.array]): 1 x n_wps of time instances corresponding to the waypoints.
-            xs (np.array): n x 1 dimensional state of the ship
-            dt (float): Time step between the previous and current run of this function.
+        Note:
+            The waypoints should be equidistant to ensure that the spline is
+            well-behaved. Assumes validated inputs.
+
+        Args:
+            waypoints (np.ndarray): 2 x n_wps waypoints array to follow.
+            speed_plan (np.ndarray): 1 x n_wps speed plan array to follow.
+            times (np.ndarray | None): 1 x n_wps of time instances corresponding to
+                the waypoints.
+            xs (np.ndarray): n x 1 dimensional state of the ship.
+            dt (float): Time step between the previous and current run of this
+                function.
 
         Returns:
             np.ndarray: 9 x 1 dimensional reference state vector.
@@ -324,13 +345,21 @@ class KinematicTrajectoryPlanner(IGuidance):
                 break
         return np.array(ref_traj_list).T
 
-    def get_current_path_variables(self) -> Tuple[float, float]:
+    def get_current_path_variables(self) -> tuple[float, float]:
         return self._s, self._s_dot
 
-    def get_splines(self):
+    def get_splines(
+        self,
+    ) -> tuple[interp.BSpline, interp.BSpline, interp.PchipInterpolator, interp.PchipInterpolator]:
+        """Get the splines used for trajectory planning.
+
+        Returns:
+            tuple[interp.BSpline, interp.BSpline, interp.PchipInterpolator, interp.PchipInterpolator]:
+                Splines for x, y, heading and speed.
+        """
         return self._x_spline, self._y_spline, self._heading_spline, self._speed_spline
 
-    def _compute_path_variable_derivatives(self, s: float) -> Tuple[float, float]:
+    def _compute_path_variable_derivatives(self, s: float) -> tuple[float, float]:
         s_dot = self._speed_spline(s) / np.sqrt(
             self._epsilon + np.power(self._x_spline(s, 1), 2.0) + np.power(self._y_spline(s, 1), 2.0)
         )
@@ -370,7 +399,7 @@ class KinematicTrajectoryPlanner(IGuidance):
         )
 
     def plot_reference_trajectory(
-        self, waypoints: np.ndarray, times: Optional[np.ndarray], arc_length_parameterization: bool = True
+        self, waypoints: np.ndarray, times: np.ndarray | None, arc_length_parameterization: bool = True
     ) -> None:
         """Plots the trajectory of the reference vehicle.
 
@@ -486,7 +515,7 @@ class LOSGuidance(IGuidance):
         _e_int (float): Integral of the cross-track error
     """
 
-    def __init__(self, params: Optional[LOSGuidanceParams] = None) -> None:
+    def __init__(self, params: LOSGuidanceParams | None = None) -> None:
         if params is not None:
             self._params: LOSGuidanceParams = params
         else:
@@ -500,16 +529,23 @@ class LOSGuidance(IGuidance):
         self._e_int = 0.0
 
     def compute_references(
-        self, waypoints: np.ndarray, speed_plan: np.ndarray, times: Optional[np.ndarray], xs: np.ndarray, dt: float
+        self,
+        waypoints: np.ndarray,
+        speed_plan: np.ndarray,
+        times: np.ndarray | None,  # noqa: ARG002
+        xs: np.ndarray,
+        dt: float,
     ) -> np.ndarray:
         """Computes references in course and speed using the LOS guidance law.
 
         Args:
-            waypoints (np.array): 2 x n_wps waypoints array to follow.
-            speed_plan (np.array): 1 x n_wps speed plan array to follow.
-            times (np.array): 1 x n_wps of time instances corresponding to the waypoints.
-            xs (np.array): n x 1 dimensional state of the ship
-            dt (float): Time step between the previous and current run of this function.
+            waypoints (np.ndarray): 2 x n_wps waypoints array to follow.
+            speed_plan (np.ndarray): 1 x n_wps speed plan array to follow.
+            times (np.ndarray | None): 1 x n_wps of time instances corresponding to
+                the waypoints.
+            xs (np.ndarray): n x 1 dimensional state of the ship.
+            dt (float): Time step between the previous and current run of this
+                function.
 
         Returns:
             np.ndarray: 9 x 1 dimensional reference vector.
@@ -527,15 +563,17 @@ class LOSGuidance(IGuidance):
             L_wp_segment = waypoints[:, self._wp_counter + 1] - waypoints[:, self._wp_counter]
 
         alpha = np.arctan2(L_wp_segment[1], L_wp_segment[0])
-        e = -(xs[0] - waypoints[0, self._wp_counter]) * np.sin(alpha) + (
-            xs[1] - waypoints[1, self._wp_counter]
-        ) * np.cos(alpha)
+        e = -(xs[0] - waypoints[0, self._wp_counter]) * np.sin(alpha) + (xs[1] - waypoints[1, self._wp_counter]) * np.cos(
+            alpha
+        )
 
         if abs(e) < self._params.cross_track_error_int_threshold:
             self._e_int += e * dt
 
         self._e_int = mf.sat(
-            self._e_int, -self._params.max_cross_track_error_int, self._params.max_cross_track_error_int
+            self._e_int,
+            -self._params.max_cross_track_error_int,
+            self._params.max_cross_track_error_int,
         )
 
         chi_r = np.arctan2(-(self._params.K_p * e + self._params.K_i * self._e_int), 1)
@@ -543,7 +581,8 @@ class LOSGuidance(IGuidance):
         U_d = speed_plan[self._wp_counter]
 
         # print(
-        #     f"e_int: {self._e_int} | e: {e} | chi_r: {chi_r * 180.0 / np.pi} | Kp_b: {self._params.K_p * e} | Ki_b: {self._params.K_i * self._e_int}"
+        #     f"e_int: {self._e_int} | e: {e} | chi_r: {chi_r * 180.0 / np.pi} | Kp_b: {self._params.K_p * e} " +
+        #     f"| Ki_b: {self._params.K_i * self._e_int}"
         # )
 
         references = np.zeros((9, 1))
@@ -554,6 +593,7 @@ class LOSGuidance(IGuidance):
         """Finds the active line segment between waypoints to follow.
 
             Assumes validated inputs.
+
         Args:
             waypoints (np.array): 2 x n_wps waypoints array to follow.
             xs (np.array): n x 1 dimensional state of the ship
@@ -576,12 +616,12 @@ class LOSGuidance(IGuidance):
                 break
 
     def _check_for_wp_segment_switch(self, wp_segment: np.ndarray, d_0wp: np.ndarray) -> bool:
-        """Checks if a switch should be made from the current to the next
-        waypoint segment.
+        """Checks if a switch should be made from the current to the next waypoint segment.
 
         Args:
-            wp_segment (np.array): 2D vector describing the distance from waypoint i to i + 1 in the current segment.
-            d_0wp (np.array): 2D distance vector from state to waypoint i + 1.
+            wp_segment (np.ndarray): 2D vector describing the distance from waypoint
+                i to i + 1 in the current segment.
+            d_0wp (np.ndarray): 2D distance vector from state to waypoint i + 1.
 
         Returns:
             bool: If the switch should be made or not.

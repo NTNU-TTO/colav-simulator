@@ -1,22 +1,21 @@
-"""
-    Demonstrates how to use an external planning algorithm with the colav-simulator.
+"""Demonstrates how to use an external planning algorithm with the colav-simulator.
 
-    Author: Trym Tengesdal
+Author: Trym Tengesdal
 """
 
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+
+import matplotlib as mpl
+import matplotlib.pyplot as plt
 
 import colav_simulator.common.paths as dp
 import colav_simulator.core.colav.colav_interface as ci
-import colav_simulator.core.guidances as guidances
-import colav_simulator.core.stochasticity as stochasticity
-import matplotlib
-import matplotlib.pyplot as plt
+from colav_simulator.core import guidances, stochasticity
 
-matplotlib.use("Agg")
+mpl.use("Agg")
 import numpy as np
 import seacharts.enc as senc
+
 from colav_simulator.scenario_generator import ScenarioGenerator
 from colav_simulator.simulator import Simulator
 
@@ -31,31 +30,33 @@ class DummyPlannerParams:
 
 
 class DummyPlanner(ci.ICOLAV):
+    """Dummy planner."""
+
     def __init__(self, config: DummyPlannerParams) -> None:
         self._config = config
         self._los = guidances.LOSGuidance(config.los)
         self._references = np.zeros((9, 1))
         self._t_prev = 0.0
 
-    def reset(self) -> None:
+    def reset(self) -> None:  # noqa: D102
         self._references = np.zeros((9, 1))
         self._t_prev = 0.0
         self._los.reset()
 
-    def plan(
+    def plan(  # noqa: D102
         self,
         t: float,
         waypoints: np.ndarray,
         speed_plan: np.ndarray,
         ownship_state: np.ndarray,
-        do_list: List[Tuple[int, np.ndarray, np.ndarray, float, float]],
-        enc: Optional[senc.ENC] = None,
-        goal_state: Optional[np.ndarray] = None,
-        w: Optional[stochasticity.DisturbanceData] = None,
-        **kwargs,
+        do_list: list[tuple[int, np.ndarray, np.ndarray, float, float]],  # noqa: ARG002
+        enc: senc.ENC | None = None,  # noqa: ARG002
+        goal_state: np.ndarray | None = None,  # noqa: ARG002
+        w: stochasticity.DisturbanceData | None = None,  # noqa: ARG002
+        **kwargs,  # noqa: ARG002
     ) -> np.ndarray:
-        assert waypoints is not None, "Waypoints must be provided to the dummy planner"
-        assert speed_plan is not None, "Speed plan must be provided to the dummy planner"
+        assert waypoints is not None, "Waypoints must be provided to the dummy planner"  # noqa: S101
+        assert speed_plan is not None, "Speed plan must be provided to the dummy planner"  # noqa: S101
 
         # Insert all your fancy planning here
 
@@ -65,10 +66,10 @@ class DummyPlanner(ci.ICOLAV):
         self._t_prev = t
         return self._references
 
-    def get_current_plan(self) -> np.ndarray:
+    def get_current_plan(self) -> np.ndarray:  # noqa: D102
         return self._references
 
-    def get_colav_data(self) -> dict:
+    def get_colav_data(self) -> dict:  # noqa: D102
         return {
             "nominal_trajectory": self._references[:6, :],
             "nominal_inputs": np.zeros((3, 1)),
@@ -76,7 +77,7 @@ class DummyPlanner(ci.ICOLAV):
             "t": self._t_prev,
         }
 
-    def plot_results(self, ax_map: plt.Axes, enc: senc.ENC, plt_handles: dict, **kwargs) -> dict:
+    def plot_results(self, ax_map: plt.Axes, enc: senc.ENC, plt_handles: dict, **kwargs) -> dict:  # noqa: ARG002, D102
         return plt_handles
 
 

@@ -1,20 +1,17 @@
-"""
-    logger.py
+"""Contains class for logging data from the COLAV environment.
 
-    Summary:
-        Contains class for logging data from the COLAV environment.
-
-    Author: Trym Tengesdal
+Author: Trym Tengesdal
 """
 
 import pickle
 from pathlib import Path
-from typing import Any, Dict, List, NamedTuple, Optional
+from typing import Any, NamedTuple
 
-import colav_simulator.common.miscellaneous_helper_methods as mhm
 import cv2
 import numpy as np
 import scipy.ndimage as scimg
+
+import colav_simulator.common.miscellaneous_helper_methods as mhm
 
 
 class EpisodeData(NamedTuple):
@@ -34,12 +31,12 @@ class EpisodeData(NamedTuple):
     cumulative_reward: float
     mean_reward: float
     std_reward: float
-    reward_components: List[Dict[str, float]]
-    frames: Optional[List[np.ndarray]]
-    actions: List[np.ndarray]
-    obs: List[np.ndarray]
-    ownship_states: List[np.ndarray]
-    actor_infos: List[Dict[str, Any]]
+    reward_components: list[dict[str, float]]
+    frames: list[np.ndarray] | None
+    actions: list[np.ndarray]
+    obs: list[np.ndarray]
+    ownship_states: list[np.ndarray]
+    actor_infos: list[dict[str, Any]]
     actor_failure: bool = False
 
 
@@ -52,7 +49,8 @@ class Logger:
         save_freq (int, optional): The frequency (in episodes) of saving the data to a pickle file.
         n_envs (int, optional): The number of environments.
         max_num_logged_episodes (int, optional): The maximum number of episodes to log before saving and resetting.
-        minimal_logging (bool, optional): Whether to log the bare minimum (rewards, collisions, groundings, goal reached, and truncated).
+        minimal_logging (bool, optional): Whether to log the bare minimum (rewards, collisions,
+            groundings, goal reached, and truncated).
     """
 
     def __init__(
@@ -68,7 +66,7 @@ class Logger:
 
         self.max_num_logged_episodes: int = max_num_logged_episodes
         self.minimal_logging: bool = minimal_logging
-        self.env_data: List[EpisodeData] = []
+        self.env_data: list[EpisodeData] = []
         self.pos: int = 0
         self.prev_pos: int = 0
         self.reset_logger()
@@ -80,30 +78,30 @@ class Logger:
         self.store_actor_info: bool = True
 
         self.log_frame_freq: int = 10
-        self.log_count: List[int] = [0 for _ in range(n_envs)]
+        self.log_count: list[int] = [0 for _ in range(n_envs)]
 
-        self.episode_name: List[str] = ["" for _ in range(n_envs)]
-        self.duration: List[float] = [0.0 for _ in range(n_envs)]
-        self.rewards: List[float] = [[] for _ in range(n_envs)]
-        self.timesteps: List[int] = [0 for _ in range(n_envs)]
+        self.episode_name: list[str] = ["" for _ in range(n_envs)]
+        self.duration: list[float] = [0.0 for _ in range(n_envs)]
+        self.rewards: list[float] = [[] for _ in range(n_envs)]
+        self.timesteps: list[int] = [0 for _ in range(n_envs)]
         self.prev_episode_nr: int = -1
         self.episode_nr: int = 0
 
-        self.reward_components: List[List[Dict[str, float]]] = [[] for _ in range(n_envs)]
-        self.collision: List[bool] = [False for _ in range(n_envs)]
-        self.grounding: List[bool] = [False for _ in range(n_envs)]
-        self.goal_reached: List[bool] = [False for _ in range(n_envs)]
-        self.truncated: List[bool] = [False for _ in range(n_envs)]
-        self.frames: List[List[np.ndarray]] = [[] for _ in range(n_envs)]
-        self.distances_to_grounding: List[List[float]] = [[] for _ in range(n_envs)]
-        self.distances_to_collision: List[List[float]] = [[] for _ in range(n_envs)]
-        self.actions: List[List[np.ndarray]] = [[] for _ in range(n_envs)]
-        self.obs: List[List[np.ndarray | Dict[str, np.ndarray]]] = [[] for _ in range(n_envs)]
-        self.ownship_states: List[List[np.ndarray]] = [[] for _ in range(n_envs)]
-        self.actor_infos: List[List[Dict[str, Any]]] = [[] for _ in range(n_envs)]
-        self.actor_failure: List[bool] = [False for _ in range(n_envs)]
+        self.reward_components: list[list[dict[str, float]]] = [[] for _ in range(n_envs)]
+        self.collision: list[bool] = [False for _ in range(n_envs)]
+        self.grounding: list[bool] = [False for _ in range(n_envs)]
+        self.goal_reached: list[bool] = [False for _ in range(n_envs)]
+        self.truncated: list[bool] = [False for _ in range(n_envs)]
+        self.frames: list[list[np.ndarray]] = [[] for _ in range(n_envs)]
+        self.distances_to_grounding: list[list[float]] = [[] for _ in range(n_envs)]
+        self.distances_to_collision: list[list[float]] = [[] for _ in range(n_envs)]
+        self.actions: list[list[np.ndarray]] = [[] for _ in range(n_envs)]
+        self.obs: list[list[np.ndarray | dict[str, np.ndarray]]] = [[] for _ in range(n_envs)]
+        self.ownship_states: list[list[np.ndarray]] = [[] for _ in range(n_envs)]
+        self.actor_infos: list[list[dict[str, Any]]] = [[] for _ in range(n_envs)]
+        self.actor_failure: list[bool] = [False for _ in range(n_envs)]
 
-    def save_as_pickle(self, name: Optional[str] = None) -> None:
+    def save_as_pickle(self, name: str | None = None) -> None:
         """Saves the environment data to a pickle file.
 
         Args:
@@ -113,7 +111,7 @@ class Logger:
             name = self.experiment_name + "_env_training_data"
 
         # Don't save if there is no data or no new data
-        if self.pos == 0 or self.pos == self.prev_pos:
+        if self.pos in (0, self.prev_pos):
             return
 
         with open(self.log_dir / (name + ".pkl"), "ba") as f:
@@ -121,8 +119,9 @@ class Logger:
 
         self.reset_logger()
 
-    def load_from_pickle(self, name: Optional[str]) -> None:
+    def load_from_pickle(self, name: str | None) -> None:
         """Loads the environment data from a pickle file.
+
         Args:
             name (Optional[str]): Name of the pickle file, without the .pkl extension.
         """
@@ -139,14 +138,14 @@ class Logger:
                 except EOFError:
                     break
 
-        self.env_data = list({idx: edata for idx, edata in enumerate(self.env_data)}.values())
+        self.env_data = list(dict(enumerate(self.env_data)).values())
         # print(f"Loaded {len(self.env_data)} episodes from {name}.pkl")
 
-    def __call__(self, cs_env_infos: List[Dict[str, Any]]) -> None:
-        """Logs data from the input env info dictionary
+    def __call__(self, cs_env_infos: list[dict[str, Any]]) -> None:
+        """Logs data from the input env info dictionary.
 
         Args:
-            cs_env_infos (List[Dict[str, Any]]): List of environment info dictionaries for the COLAV environment(s).
+            cs_env_infos (List[dict[str, Any]]): List of environment info dictionaries for the COLAV environment(s).
         """
         for env_idx, info in enumerate(cs_env_infos):
             self._log_env_info(info, env_idx)
@@ -174,11 +173,11 @@ class Logger:
         img_path = self.img_dir / img_name
         cv2.imwrite(str(img_path), frame)
 
-    def _log_env_info(self, info: Dict[str, Any], env_idx: int) -> None:
+    def _log_env_info(self, info: dict[str, Any], env_idx: int) -> None:  # noqa: PLR0915
         """Logs the environment info to the logger.
 
         Args:
-            info (Dict[str, Any]): The environment info dictionary.
+            info (dict[str, Any]): The environment info dictionary.
             env_idx (int): The index of the environment.
         """
         if "episode_name" not in info:
@@ -254,12 +253,7 @@ class Logger:
             #     self._dump_last_frame_as_img(reduced_frame, env_idx)
 
         # Special case for an NMPC actor
-        if (
-            not self.minimal_logging
-            and self.store_actor_info
-            and "actor_info" in info
-            and "optimal" in info["actor_info"]
-        ):
+        if not self.minimal_logging and self.store_actor_info and "actor_info" in info and "optimal" in info["actor_info"]:
             actor_info = info["actor_info"]
             stored_actor_info = {}
             stored_actor_info["mpc_runtime"] = actor_info["runtime"]
@@ -277,7 +271,7 @@ class Logger:
             self.add_episode_data(env_idx)
             self.reset_data_structures(env_idx)
 
-    def add_episode_data(self, env_idx) -> None:
+    def add_episode_data(self, env_idx: int) -> None:
         """Adds the data from the current episode to the environment data list.
 
         Args:
@@ -323,7 +317,7 @@ class Logger:
 
     def reset_logger(self) -> None:
         """Resets the logger."""
-        self.env_data: List[EpisodeData] = [
+        self.env_data: list[EpisodeData] = [
             EpisodeData(
                 name="",
                 timestamp="",

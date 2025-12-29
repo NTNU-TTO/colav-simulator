@@ -1,5 +1,4 @@
-"""
-Test module for the Simulator class.
+"""Test module for the Simulator class.
 
 Shows how to use the simulator with a colav system.
 """

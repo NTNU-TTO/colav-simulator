@@ -1,22 +1,21 @@
-"""
-    stochasticity.py
+"""stochasticity.py.
 
-    Summary:
-        Contains class definitions for various stochastic disturbance models,
-        from which wind, wave, current++ factors can be superposed on ship objects.
-        Every disturbance class must adhere to the interface IDisturbance.
+Summary:
+Contains class definitions for various stochastic disturbance models,
+from which wind, wave, current++ factors can be superposed on ship objects.
+Every disturbance class must adhere to the interface IDisturbance.
 
-    Author: Trym Tengesdal
+Author: Trym Tengesdal
 """
 
 import random
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+
+import numpy as np
 
 import colav_simulator.common.config_parsing as cp
 import colav_simulator.common.math_functions as mf
-import numpy as np
 
 
 class MovingAverageFilter:
@@ -57,23 +56,23 @@ class GaussMarkovDisturbanceParams:
     constant: bool = True
     initial_speed: float = 3.0
     initial_direction: float = 0.0
-    speed_range: Tuple[float, float] = (0.0, 3.0)
-    direction_range: Tuple[float, float] = (-np.pi, np.pi)
+    speed_range: tuple[float, float] = (0.0, 3.0)
+    direction_range: tuple[float, float] = (-np.pi, np.pi)
     mu_speed: float = 1e-5
     mu_direction: float = 1e-05
     sigma_speed: float = 0.005
     sigma_direction: float = 0.005
     add_impulse_noise: bool = False  # Add impulse noise to the speed and direction dynamics if constant=False
-    speed_impulses: List[float] = field(
+    speed_impulses: list[float] = field(
         default_factory=lambda: [-1.0, 1.0]
     )  # List of impulse noise values to randomly choose from
-    direction_impulses: List[float] = field(
+    direction_impulses: list[float] = field(
         default_factory=lambda: [-np.pi / 4, np.pi / 4]
     )  # List of impulse noise values to randomly choose from
-    impulse_times: List[float] = field(default_factory=lambda: [70.0])
+    impulse_times: list[float] = field(default_factory=lambda: [70.0])
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "GaussMarkovDisturbanceParams":  # noqa: D102
         params = GaussMarkovDisturbanceParams()
         if "initial_speed" in config_dict:
             params.initial_speed = config_dict["initial_speed"]
@@ -101,11 +100,12 @@ class GaussMarkovDisturbanceParams:
         if "impulse_times" in config_dict:
             params.impulse_times = config_dict["impulse_times"]
         else:
-            params.impulse_times = np.random.randint(low=20, high=150, size=1).tolist()
+            rng = np.random.default_rng()
+            params.impulse_times = rng.integers(low=20, high=150, size=1).tolist()
             params.impulse_times.sort()
         return params
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict:  # noqa: D102
         config_dict = {
             "constant": self.constant,
             "initial_speed": self.initial_speed,
@@ -130,26 +130,24 @@ class GaussMarkovDisturbanceParams:
 
 @dataclass
 class Config:
-    "Configuration class for managing environment disturbance/stochasticity parameters"
+    "Configuration class for managing environment disturbance/stochasticity parameters."
 
-    wind: Optional[GaussMarkovDisturbanceParams] = field(default_factory=lambda: GaussMarkovDisturbanceParams())
-    waves: Optional[dict] = None
-    currents: Optional[GaussMarkovDisturbanceParams] = field(default_factory=lambda: GaussMarkovDisturbanceParams())
+    wind: GaussMarkovDisturbanceParams | None = field(default_factory=lambda: GaussMarkovDisturbanceParams())
+    waves: dict | None = None
+    currents: GaussMarkovDisturbanceParams | None = field(default_factory=lambda: GaussMarkovDisturbanceParams())
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "Config":  # noqa: D102
         config = Config()
         if "wind" in config_dict:
             config.wind = cp.convert_settings_dict_to_dataclass(GaussMarkovDisturbanceParams, config_dict["wind"])
 
         if "currents" in config_dict:
-            config.currents = cp.convert_settings_dict_to_dataclass(
-                GaussMarkovDisturbanceParams, config_dict["currents"]
-            )
+            config.currents = cp.convert_settings_dict_to_dataclass(GaussMarkovDisturbanceParams, config_dict["currents"])
 
         return config
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict:  # noqa: D102
         config_dict: dict = {}
         if self.wind is not None:
             config_dict["wind"] = self.wind.to_dict()
@@ -166,8 +164,8 @@ class IDisturbance(ABC):
         """Updates the disturbance process from time t to t + dt.
 
         Args:
-            - t (float): Current time
-            - dt (float): Time step
+            t (float): Current time.
+            dt (float): Time step.
         """
 
     @abstractmethod
@@ -178,11 +176,11 @@ class IDisturbance(ABC):
             - np.ndarray: Disturbance data
         """
 
-    def reset(self, seed: int | None) -> None:
+    def reset(self, seed: int | None) -> None:  # noqa: B027
         """Resets the disturbance process.
 
         Args:
-            - seed (int | None): Random seed
+            seed (int | None): Random seed.
         """
 
 
@@ -211,12 +209,11 @@ class GaussMarkovDisturbance(IDisturbance):
         self._rng = np.random.default_rng(seed)
 
     def update(self, t: float, dt: float) -> None:
-        """Update speed and direction dynamics in the gauss-marko process
+        """Update speed and direction dynamics in the gauss-markov process.
 
         Args:
-            - t (float): Current time
-            - dt (float): Time step
-
+            t (float): Current time.
+            dt (float): Time step.
         """
         if self._params.constant:
             return
@@ -265,8 +262,11 @@ class GaussMarkovDisturbance(IDisturbance):
 
 @dataclass
 class DisturbanceData:
-    """Class used for containing disturbance data. Dictionaries are used preliminarily for containing
-    info on the different disturbances, to be flexible wrt the disturbance models that are used."""
+    """Class used for containing disturbance data.
+
+    Dictionaries are used preliminarily for containing info on the different
+    disturbances, to be flexible wrt the disturbance models that are used.
+    """
 
     wind: dict
     waves: dict
@@ -294,9 +294,9 @@ class Disturbance:
     """Class for managing the different disturbances affecting the ship motion (wind, waves, currents)."""
 
     def __init__(self, config: Config):
-        self._wind: Optional[GaussMarkovDisturbance] = None
-        self._waves: Optional[bool] = None
-        self._currents: Optional[GaussMarkovDisturbance] = None
+        self._wind: GaussMarkovDisturbance | None = None
+        self._waves: bool | None = None
+        self._currents: GaussMarkovDisturbance | None = None
 
         if config.wind is not None:
             self._wind = GaussMarkovDisturbance(config.wind)
@@ -308,7 +308,7 @@ class Disturbance:
         """Resets the disturbance processes.
 
         Args:
-            - seed (int | None): Random seed
+            seed (int | None): Random seed.
         """
         if self._wind is not None:
             self._wind.reset(seed)
@@ -329,13 +329,12 @@ class Disturbance:
         self._currents = GaussMarkovDisturbance(config)
 
     def update(self, t: float, dt: float) -> None:
-        """Updates the disturbance processes from time t to t + dt
+        """Updates the disturbance processes from time t to t + dt.
 
         Args:
-            - t (float): Current time
-            - dt (float): Time step
+            t (float): Current time.
+            dt (float): Time step.
         """
-
         if self._wind is not None:
             self._wind.update(t, dt)
 
@@ -343,8 +342,7 @@ class Disturbance:
             self._currents.update(t, dt)
 
     def get(self) -> DisturbanceData:
-        """Fetches the disturbance data at time t"""
-
+        """Fetches the disturbance data at time t."""
         disturbance_data = DisturbanceData()
 
         if self._wind is not None:

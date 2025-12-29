@@ -1,45 +1,56 @@
-"""
-    trackers.py
+"""trackers.py.
 
-    Summary:
-        Contains class definitions for dynamic obstacle
-        target trackers. Every tracker must adhere to the
-        ITracker interface.
+Summary:
+Contains class definitions for dynamic obstacle
+target trackers. Every tracker must adhere to the
+ITracker interface.
 
-    Author: Trym Tengesdal
+Author: Trym Tengesdal
 """
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+
+import numpy as np
+import scipy.linalg as la
 
 import colav_simulator.common.config_parsing as cp
 import colav_simulator.core.sensing as sens
-import numpy as np
-import scipy.linalg as la
 
 
 class ITracker(ABC):
     @abstractmethod
     def track(
-        self, t: float, dt: float, true_do_states: List[Tuple[int, np.ndarray, float, float]], ownship_state: np.ndarray
-    ) -> Tuple[List[Tuple[int, np.ndarray, np.ndarray, float, float]], List[Tuple[int, np.ndarray]]]:
-        """Tracks/updates estimates on dynamic obstacles, based on sensor measurements
-        generated from the input true dynamic obstacle states.
+        self,
+        t: float,
+        dt: float,
+        true_do_states: list[tuple[int, np.ndarray, float, float]],
+        ownship_state: np.ndarray,
+    ) -> tuple[list[tuple[int, np.ndarray, np.ndarray, float, float]], list[tuple[int, np.ndarray]]]:
+        """Tracks/updates estimates on dynamic obstacles.
+
+        Based on sensor measurements generated from the input true dynamic obstacle
+        states.
 
         Args:
-            dt (float): Time since last update
-            t (float): Current time (assumed >= 0)
-            true_do_states (List[Tuple[int, np.ndarray, float, float]]): List of tuples of true dynamic obstacle indices and states (do_idx, [x, y, Vx, Vy], length, width) x n_do. Used for simulating sensor measurements.
-            ownship_state (np.ndarray): Ownship state vector on the form [x, y, Vx, Vy] used for simulating sensor measurements.
+            t (float): Current time (assumed >= 0).
+            dt (float): Time since last update.
+            true_do_states (list[tuple[int, np.ndarray, float, float]]): List of
+                tuples of true dynamic obstacle indices and states (do_idx, [x, y,
+                Vx, Vy], length, width) x n_do. Used for simulating sensor
+                measurements.
+            ownship_state (np.ndarray): Ownship state vector on the form [x, y, Vx,
+                Vy] used for simulating sensor measurements.
 
         Returns:
-            Tuple[List[Tuple[int, np.ndarray, np.ndarray, float, float]], List[Tuple[int, np.ndarray]]]: List of updated dynamic obstacle tracks (ID, state, cov, length, width), sorted in ascending order
-        by the distance from the ownship. Also, a list the sensor measurements used.
+            tuple[list[tuple[int, np.ndarray, np.ndarray, float, float]], list[tuple[int, np.ndarray]]]:
+                List of updated dynamic obstacle tracks (ID, state, cov, length,
+                width), sorted in ascending order by the distance from the ownship.
+                Also, a list the sensor measurements used.
         """
 
     @abstractmethod
-    def set_sensor_list(self, sensor_list: List[sens.ISensor]) -> None:
+    def set_sensor_list(self, sensor_list: list[sens.ISensor]) -> None:
         """Sets the sensor list for the tracker.
 
         Args:
@@ -49,18 +60,21 @@ class ITracker(ABC):
     @abstractmethod
     def get_track_information(
         self, ownship_state: np.ndarray
-    ) -> Tuple[List[Tuple[int, np.ndarray, np.ndarray, float, float]], List[float]]:
-        """Returns the dynamic obstacle track information (ID, state, cov, length, width), sorted in ascending order
-        by the distance from the ownship.
+    ) -> tuple[list[tuple[int, np.ndarray, np.ndarray, float, float]], list[float]]:
+        """Returns the dynamic obstacle track information.
 
-        Also, it returns the associated Normalized Innovation error Squared (NIS) values for
-        the most recent update step for each track, and the track labels.
+        Returns (ID, state, cov, length, width), sorted in ascending order by the
+        distance from the ownship. Also, it returns the associated Normalized
+        Innovation error Squared (NIS) values for the most recent update step for
+        each track, and the track labels.
 
         Args:
-            ownship_state (np.ndarray): Ownship state vector on the form [x, y, Vx, Vy] used for simulating sensor measurements.
+            ownship_state (np.ndarray): Ownship state vector on the form [x, y, Vx,
+                Vy] used for simulating sensor measurements.
 
         Returns:
-            Tuple[List[Tuple[int, np.ndarray, np.ndarray, float, float]], List[float]]: List of tracks and list of NISes.
+            tuple[list[tuple[int, np.ndarray, np.ndarray, float, float]], list[float]]:
+                List of tracks and list of NISes.
         """
 
     @abstractmethod
@@ -75,12 +89,12 @@ class KFParams:
     P_0: np.ndarray = field(default_factory=lambda: np.diag([49.0, 49.0, 0.5, 0.5]))
     q: float = 0.4
 
-    def to_dict(self):
+    def to_dict(self) -> dict:  # noqa: D102
         output_dict = {"P_0": self.P_0.diagonal().tolist(), "q": self.q}
         return output_dict
 
     @classmethod
-    def from_dict(cls, config_dict):
+    def from_dict(cls, config_dict: dict) -> "KFParams":  # noqa: D102
         return KFParams(P_0=np.diag(config_dict["P_0"]), q=config_dict["q"])
 
 
@@ -88,10 +102,10 @@ class KFParams:
 class Config:
     """Class for holding tracker configuration parameters."""
 
-    god_tracker: Optional[bool] = True
-    kf: Optional[KFParams] = None
+    god_tracker: bool | None = True
+    kf: KFParams | None = None
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict:  # noqa: D102
         output_dict = {}
         if self.kf is not None:
             output_dict["kf"] = self.kf.to_dict()
@@ -101,7 +115,7 @@ class Config:
         return output_dict
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "Config":  # noqa: D102
         config = Config()
 
         if "kf" in config_dict:
@@ -116,8 +130,8 @@ class Config:
 
 class TrackerBuilder:
     @classmethod
-    def construct_tracker(cls, sensors: list, config: Optional[Config] = None) -> ITracker:
-        """Builds a tracker from the configuration
+    def construct_tracker(cls, sensors: list, config: Config | None = None) -> ITracker:
+        """Builds a tracker from the configuration.
 
         Args:
             sensors (list): Sensors used by the tracker.
@@ -137,8 +151,8 @@ class TrackerBuilder:
 class GodTracker(ITracker):
     """This tracker is used to simulate perfect knowledge of dynamic obstacles."""
 
-    def __init__(self, sensor_list: Optional[List[sens.ISensor]] = None) -> None:
-        self.sensors: List[sens.ISensor] = sensor_list
+    def __init__(self, sensor_list: list[sens.ISensor] | None = None) -> None:
+        self.sensors: list[sens.ISensor] = sensor_list
 
         self._initialized: bool = False
         self._labels: list = []
@@ -159,14 +173,20 @@ class GodTracker(ITracker):
         self._width_upd = []
         self._recent_sensor_measurements = []
 
-    def set_sensor_list(self, sensor_list: List[sens.ISensor]) -> None:
+    def set_sensor_list(self, sensor_list: list[sens.ISensor]) -> None:
         self.sensors = sensor_list
 
     def track(
-        self, t: float, dt: float, true_do_states: List[Tuple[int, np.ndarray, float, float]], ownship_state: np.ndarray
-    ) -> Tuple[List[Tuple[int, np.ndarray, np.ndarray, float, float]], List[Tuple[int, np.ndarray]]]:
+        self,
+        t: float,
+        dt: float,  # noqa: ARG002
+        true_do_states: list[tuple[int, np.ndarray, float, float]],
+        ownship_state: np.ndarray,
+    ) -> tuple[list[tuple[int, np.ndarray, np.ndarray, float, float]], list[tuple[int, np.ndarray]]]:
         # If the function is run at the same time as the previous, return the same tracks
-        assert self.sensors is not None, "Sensor list must be set."
+        if self.sensors is None:
+            msg = "Sensor list must be set."
+            raise ValueError(msg)
         if t <= self._t_prev:
             tracks, _ = self.get_track_information(ownship_state)
             return tracks, self._recent_sensor_measurements
@@ -204,7 +224,7 @@ class GodTracker(ITracker):
         tracks_sorted_by_distance = sorted(tracks, key=lambda x: np.linalg.norm(x[1][:2] - ownship_state[:2]))
         return tracks_sorted_by_distance, sensor_measurements
 
-    def get_track_information(self, ownship_state: np.ndarray) -> Tuple[list, list]:
+    def get_track_information(self, ownship_state: np.ndarray) -> tuple[list, list]:
         tracks = []
         for i, label in enumerate(self._labels):
             tracks.append(
@@ -223,7 +243,7 @@ class GodTracker(ITracker):
 class KF(ITracker):
     """The KF class implements a linear Kalman filter based tracker."""
 
-    def __init__(self, sensor_list: Optional[List[sens.ISensor]] = None, params: Optional[KFParams] = None) -> None:
+    def __init__(self, sensor_list: list[sens.ISensor] | None = None, params: KFParams | None = None) -> None:
         if params is not None:
             self._params: KFParams = params
         else:
@@ -231,7 +251,7 @@ class KF(ITracker):
 
         self._model = CVModel(self._params.q)
 
-        self.sensors: List[sens.ISensor] = sensor_list
+        self.sensors: list[sens.ISensor] = sensor_list
 
         self._track_initialized: list = []
         self._track_terminated: list = []
@@ -260,21 +280,27 @@ class KF(ITracker):
         self._t_prev = -1.0
         self._recent_sensor_measurements = []
 
-    def set_sensor_list(self, sensor_list: List[sens.ISensor]) -> None:
+    def set_sensor_list(self, sensor_list: list[sens.ISensor]) -> None:
         self.sensors = sensor_list
 
     def track(
-        self, t: float, dt: float, true_do_states: List[Tuple[int, np.ndarray, float, float]], ownship_state: np.ndarray
-    ) -> Tuple[List[Tuple[int, np.ndarray, np.ndarray, float, float]], List[Tuple[int, np.ndarray]]]:
-        assert self.sensors is not None, "Sensor list must be set."
+        self,
+        t: float,
+        dt: float,
+        true_do_states: list[tuple[int, np.ndarray, float, float]],
+        ownship_state: np.ndarray,
+    ) -> tuple[list[tuple[int, np.ndarray, np.ndarray, float, float]], list[tuple[int, np.ndarray]]]:
+        if self.sensors is None:
+            msg = "Sensor list must be set."
+            raise ValueError(msg)
         # If the function is run at the same time as the previous, return the same tracks
         if t <= self._t_prev:
             tracks, _ = self.get_track_information(ownship_state)
             return tracks, self._recent_sensor_measurements
 
         self._t_prev = t
-        max_sensor_range = max([sensor.max_range for sensor in self.sensors])
-        for i, (do_idx, do_state, do_length, do_width) in enumerate(true_do_states):
+        max_sensor_range = max(sensor.max_range for sensor in self.sensors)
+        for _i, (do_idx, do_state, do_length, do_width) in enumerate(true_do_states):
             dist_ownship_to_do = np.linalg.norm(do_state[:2] - ownship_state[:2])
             if do_idx not in self._labels and dist_ownship_to_do < max_sensor_range:
                 self._labels.append(do_idx)
@@ -334,7 +360,7 @@ class KF(ITracker):
         tracks_sorted_by_distance = sorted(tracks, key=lambda x: np.linalg.norm(x[1][:2] - ownship_state[:2]))
         return tracks_sorted_by_distance, sensor_measurements
 
-    def predict(self, xs_upd: np.ndarray, P_upd: np.ndarray, dt: float):
+    def predict(self, xs_upd: np.ndarray, P_upd: np.ndarray, dt: float) -> tuple[np.ndarray, np.ndarray]:
         F = self._model.F(dt)
         Q = self._model.Q(dt)
 
@@ -343,7 +369,7 @@ class KF(ITracker):
 
         return x_pred, P_pred
 
-    def innovation(self, xs_p: np.ndarray, P_p: np.ndarray, z: np.ndarray, sensor_id: int):
+    def innovation(self, xs_p: np.ndarray, P_p: np.ndarray, z: np.ndarray, sensor_id: int) -> tuple[np.ndarray, np.ndarray]:
         zbar = self.sensors[sensor_id].h(xs_p)
         v = z - zbar
 
@@ -355,7 +381,7 @@ class KF(ITracker):
 
     def update(
         self, xs_p: np.ndarray, P_p: np.ndarray, z: np.ndarray, sensor_id: int
-    ) -> Tuple[np.ndarray, np.ndarray, float]:
+    ) -> tuple[np.ndarray, np.ndarray, float]:
         if any(np.isnan(z)):
             return xs_p, P_p, np.nan
 
@@ -368,7 +394,7 @@ class KF(ITracker):
 
         return x_upd, P_upd, NIS(v, S)
 
-    def get_track_information(self, ownship_state: np.ndarray) -> Tuple[list, list]:
+    def get_track_information(self, ownship_state: np.ndarray) -> tuple[list, list]:
         tracks = []
         for i, label in enumerate(self._labels):
             tracks.append(
@@ -385,6 +411,15 @@ class KF(ITracker):
 
 
 def NIS(v: np.ndarray, S: np.ndarray) -> float:
+    """Calculate the Normalized Innovation Squared (NIS).
+
+    Args:
+        v (np.ndarray): Innovation vector.
+        S (np.ndarray): Innovation covariance matrix.
+
+    Returns:
+        float: NIS value.
+    """
     return v.T @ la.inv(S) @ v
 
 
@@ -417,7 +452,14 @@ class CVModel:
         Returns:
             np.ndarray: Jacobian of the prediction model state transition function
         """
-        return np.array([[1.0, 0.0, dt, 0.0], [0.0, 1.0, 0.0, dt], [0.0, 0.0, 1.0, 0.0], [0.0, 0.0, 0.0, 1.0]])
+        return np.array(
+            [
+                [1.0, 0.0, dt, 0.0],
+                [0.0, 1.0, 0.0, dt],
+                [0.0, 0.0, 1.0, 0.0],
+                [0.0, 0.0, 0.0, 1.0],
+            ]
+        )
 
     def Q(self, dt: float) -> np.ndarray:
         """Returns the process noise covariance matrix.

@@ -46,7 +46,7 @@ def test_yaml_round_trip_simple():
         original_dict["map_data_files"]
     )
     for resolved_path, original_path in zip(
-        round_trip_dict["map_data_files"], original_dict["map_data_files"]
+        round_trip_dict["map_data_files"], original_dict["map_data_files"], strict=False
     ):
         assert Path(resolved_path).name == Path(original_path).name
 

@@ -1,6 +1,4 @@
-"""
-Test file showing how the behavior generator can be used to generate scenarios.
-"""
+"""Test file showing how the behavior generator can be used to generate scenarios."""
 
 import colav_simulator.common.paths as dp
 from colav_simulator.behavior_generator import (

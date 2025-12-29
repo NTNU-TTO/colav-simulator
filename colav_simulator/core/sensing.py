@@ -1,21 +1,20 @@
-"""
-    sensing.py
+"""sensing.py.
 
-    Summary:
-        Contains class definitions for various sensors.
-        Every sensor must adhere to the ISensor interface.
+Summary:
+Contains class definitions for various sensors.
+Every sensor must adhere to the ISensor interface.
 
-    Author: Trym Tengesdal, Ragnar Wien
+Author: Trym Tengesdal, Ragnar Wien
 """
 
 from abc import ABC, abstractmethod
 from dataclasses import asdict, dataclass, field
 from enum import Enum
-from typing import List, Optional, Tuple
+
+import numpy as np
 
 import colav_simulator.common.config_parsing as cp
 import colav_simulator.common.math_functions as mf
-import numpy as np
 
 
 class ISensor(ABC):
@@ -41,18 +40,21 @@ class ISensor(ABC):
 
     @abstractmethod
     def generate_measurements(
-        self, t: float, true_do_states: List[Tuple[int, np.ndarray, float, float]], ownship_state: np.ndarray
-    ) -> List[Tuple[int, np.ndarray]]:
-        """Generates sensor measurements from the input tuple list of true dynamic obstacle info (do_idx, do_state, do_length, do_width) x n_do,
-        and own-ship state.
+        self, t: float, true_do_states: list[tuple[int, np.ndarray, float, float]], ownship_state: np.ndarray
+    ) -> list[tuple[int, np.ndarray]]:
+        """Generates sensor measurements from the input tuple list of true dynamic obstacle info.
+
+        Takes (do_idx, do_state, do_length, do_width) x n_do, and own-ship state.
 
         Args:
             t (float): Current time.
-            true_do_states (list): List of tuples containing the dynamic obstacle index, state, length, and width.
+            true_do_states (list[tuple[int, np.ndarray, float, float]]): List of tuples
+                containing the dynamic obstacle index, state, length, and width.
             ownship_state (np.ndarray): Own-ship state vector.
 
         Returns:
-            List[Tuple[int, np.ndarray]]: List of tuples containing the dynamic obstacle index and the measurement.
+            list[tuple[int, np.ndarray]]: List of tuples containing the dynamic obstacle
+                index and the measurement.
         """
 
 
@@ -62,9 +64,7 @@ class RadarParams:
 
     max_range: float = 1000.0
     measurement_rate: float = 1.0
-    R_ne: np.ndarray = field(
-        default_factory=lambda: np.diag([5.0**2, 5.0**2])
-    )  # north-east meas cov used by the tracker
+    R_ne: np.ndarray = field(default_factory=lambda: np.diag([5.0**2, 5.0**2]))  # north-east meas cov used by the tracker
     R_ne_true: np.ndarray = field(
         default_factory=lambda: np.diag([5.0**2, 5.0**2])
     )  #  north-east meas cov that reflects the true noise characteristics. Used to generate measurements
@@ -75,7 +75,7 @@ class RadarParams:
     R_polar_true: np.ndarray = field(default_factory=lambda: np.diag([8.0**2, ((np.pi / 180) * 1) ** 2]))  # meas cov
 
     @classmethod
-    def from_dict(self, config_dict: dict):
+    def from_dict(self, config_dict: dict) -> "RadarParams":  # noqa: D102
         return RadarParams(
             max_range=config_dict["max_range"],
             measurement_rate=config_dict["measurement_rate"],
@@ -88,7 +88,7 @@ class RadarParams:
             R_polar_true=np.diag(config_dict["R_polar_true"]),
         )
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict:  # noqa: D102
         output_dict = asdict(self)
         output_dict["R_ne"] = self.R_ne.diagonal().tolist()
         output_dict["R_ne_true"] = self.R_ne_true.diagonal().tolist()
@@ -117,7 +117,7 @@ class AISParams:
     )  # meas cov that reflects the true noise characteristics. Used to generate measurements
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "AISParams":  # noqa: D102
         return AISParams(
             max_range=config_dict["max_range"],
             ais_class=AISClass[config_dict["ais_class"]],
@@ -125,7 +125,7 @@ class AISParams:
             R_true=np.diag(config_dict["R_true"]),
         )
 
-    def to_dict(self) -> dict:
+    def to_dict(self) -> dict:  # noqa: D102
         output_dict = {
             "max_range": self.max_range,
             "ais_class": self.ais_class.name,
@@ -154,7 +154,7 @@ class Config:
         return output_list
 
     @classmethod
-    def from_dict(cls, config_dict: dict):
+    def from_dict(cls, config_dict: dict) -> "Config":  # noqa: D102
         config = Config(sensor_list=[])
         for sensor_dict in config_dict:
             if "radar" in sensor_dict:
@@ -167,8 +167,8 @@ class Config:
 
 class SensorSuiteBuilder:
     @classmethod
-    def construct_sensors(cls, config: Optional[Config] = None) -> list:
-        """Builds a list of sensors from the configuration
+    def construct_sensors(cls, config: Config | None = None) -> list:
+        """Builds a list of sensors from the configuration.
 
         Args:
             config (Optional[Config]): Configuration of ship sensors
@@ -207,18 +207,18 @@ class Radar(ISensor):
     def seed(self, seed: int) -> None:
         self._rng = np.random.default_rng(seed)
 
-    def R(self, xs: np.ndarray) -> np.ndarray:
+    def R(self, xs: np.ndarray) -> np.ndarray:  # noqa: ARG002
         return self._params.R_ne_true
 
-    def H(self, xs: np.ndarray) -> np.ndarray:
+    def H(self, xs: np.ndarray) -> np.ndarray:  # noqa: ARG002
         return self._H
 
     def h(self, xs: np.ndarray) -> np.ndarray:
         return self._H @ xs
 
     def generate_measurements(
-        self, t: float, true_do_states: List[Tuple[int, np.ndarray, float, float]], ownship_state: np.ndarray
-    ) -> List[Tuple[int, np.ndarray]]:
+        self, t: float, true_do_states: list[tuple[int, np.ndarray, float, float]], ownship_state: np.ndarray
+    ) -> list[tuple[int, np.ndarray]]:
         measurements = []
         if not self._initialized or t < 0.0001:
             self._prev_meas_time = t
@@ -229,7 +229,7 @@ class Radar(ISensor):
         if (t - self._prev_meas_time) < (1.0 / self._params.measurement_rate):
             return [(do_tup[0], np.nan * np.ones(2)) for do_tup in true_do_states]
 
-        for i, (do_idx, do_state, do_length, do_width) in enumerate(true_do_states):
+        for _i, (do_idx, do_state, _do_length, _do_width) in enumerate(true_do_states):
             dist_ownship_to_do = np.sqrt((do_state[0] - ownship_state[0]) ** 2 + (do_state[1] - ownship_state[1]) ** 2)
             do_detection_check = self._rng.random()
             if dist_ownship_to_do <= self._params.max_range and do_detection_check <= detection_probability:
@@ -266,7 +266,7 @@ class Radar(ISensor):
         measurements.extend(z_clutter)
         return measurements
 
-    def generate_clutter(self, ownship_state: np.ndarray) -> List[Tuple[int, np.ndarray]]:
+    def generate_clutter(self, ownship_state: np.ndarray) -> list[tuple[int, np.ndarray]]:
         """Generates clutter measurements around the ownship using a Poisson distribution.
 
         Args:
@@ -337,10 +337,10 @@ class AIS(ISensor):
     def seed(self, seed: int | None) -> None:
         self._rng = np.random.default_rng(seed)
 
-    def R(self, xs: np.ndarray) -> np.ndarray:
+    def R(self, xs: np.ndarray) -> np.ndarray:  # noqa: ARG002
         return self._params.R
 
-    def H(self, xs: np.ndarray) -> np.ndarray:
+    def H(self, xs: np.ndarray) -> np.ndarray:  # noqa: ARG002
         return self._H
 
     def h(self, xs: np.ndarray) -> np.ndarray:
@@ -348,8 +348,8 @@ class AIS(ISensor):
         return z
 
     def generate_measurements(
-        self, t: float, true_do_states: List[Tuple[int, np.ndarray, float, float]], ownship_state: np.ndarray
-    ) -> List[Tuple[int, np.ndarray]]:
+        self, t: float, true_do_states: list[tuple[int, np.ndarray, float, float]], ownship_state: np.ndarray
+    ) -> list[tuple[int, np.ndarray]]:
         measurements = []
         if not self._initialized or t < 0.0001:
             self._prev_meas_time = [t] * len(true_do_states)
@@ -374,12 +374,13 @@ class AIS(ISensor):
         return measurements
 
     def _measurement_rate(self, xs: np.ndarray) -> float:
-        """Returns the measurement rate for the input state. This depends on
-        the input state's speed and AIS class (and also if the course is changing,
-        but this is not considered here (yet)).
+        """Returns the measurement rate for the input state.
+
+        This depends on the input state's speed and AIS class (and also if the
+        course is changing, but this is not considered here (yet)).
 
         Args:
-            xs (np.ndarray): The state vector of the dynamic obstacle = [x, y, Vx, Vy]
+            xs (np.ndarray): The state vector of the dynamic obstacle = [x, y, Vx, Vy].
 
         Returns:
             float: The measurement rate in Hz.

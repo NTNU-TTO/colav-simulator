@@ -1,5 +1,4 @@
-"""
-vessel_data.py
+"""vessel_data.py.
 
 Summary:
     Contains a VesselData class, used to
@@ -13,15 +12,14 @@ import warnings
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Tuple
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import scipy.ndimage.filters as filters
 import seacharts.enc as senc
-import shapely.geometry as geometry
 from scipy.interpolate import interp1d
+from scipy.ndimage import filters
+from shapely import geometry
 
 import colav_simulator.common.map_functions as mapf
 import colav_simulator.common.math_functions as mf
@@ -29,7 +27,7 @@ import colav_simulator.common.miscellaneous_helper_methods as mhm
 
 
 class Status(Enum):
-    """Status of the vessel (by AIS standards)"""
+    """Status of the vessel (by AIS standards)."""
 
     UnderWayUsingEngine = 0  # Underway using engine
     AtAnchor = 1  # At anchor
@@ -56,12 +54,8 @@ class VesselData:
     latlon: np.ndarray = field(
         default_factory=lambda: np.empty(0)
     )  # Position trajectory of the vessel: [lat, lon]  x n_msgs
-    sog: np.ndarray = field(
-        default_factory=lambda: np.empty(0)
-    )  # Speed over ground in m/s, array x n_msgs
-    cog: np.ndarray = field(
-        default_factory=lambda: np.empty(0)
-    )  # Course over ground array x n_msgs
+    sog: np.ndarray = field(default_factory=lambda: np.empty(0))  # Speed over ground in m/s, array x n_msgs
+    cog: np.ndarray = field(default_factory=lambda: np.empty(0))  # Course over ground array x n_msgs
     timestamps: np.ndarray = field(default_factory=lambda: np.empty(0))
     datetimes_utc: np.ndarray = field(default_factory=lambda: np.empty(0))
     name: str = ""
@@ -97,7 +91,7 @@ class VesselData:
     grounding_idx: int = -1
 
     @classmethod
-    def create_from_ais_data(
+    def create_from_ais_data(  # noqa: PLR0915
         cls,
         t_0_global: datetime,
         t_end_global: datetime,
@@ -106,24 +100,30 @@ class VesselData:
         ship_info_df: pd.DataFrame = None,
         utm_zone: int = 33,
         sample_interval: float = 1.0,
-    ):
+    ) -> "VesselData":
         """Create a VesselData object from AIS data contained in DataFrames.
 
-        Interpolates the data to within [t_0_global, t_end_global] for a desired sampling interval.
-        This means that some of the data could contain NaN values, due to the vessel AIS data not
-        necessarily covering the entire time interval.
+        Interpolates the data to within [t_0_global, t_end_global] for a desired
+        sampling interval. This means that some of the data could contain NaN
+        values, due to the vessel AIS data not necessarily covering the entire
+        time interval.
 
         Assumes availability of the following columns in the AIS DataFrame:
         mmsi;date_time_utc;sog;cog;true_heading;nav_status;calc_speed;lon;lat
 
         Args:
-            t_0_global (datetime): Start time, minimum over all considered vessels, from the AIS data.
-            t_end_global (datetime): End time, maximum over all considered vessels, from the AIS data.
-            identifer (int): Identifier (ID) for the vessel.
-            ship_ais_df (pd.DataFrame): DataFrame containing AIS data for the vessel.
-            ship_info_df (Optional[pd.DataFrame]): DataFrame containing information about the vessel.
-            utm_zone (int, optional): UTM zone for the ENU frame used.
-            sample_interval (float, optional): Desired sampling interval for the trajectory. Defaults to 1.0 seconds.
+            t_0_global (datetime): Start time, minimum over all considered
+                vessels, from the AIS data.
+            t_end_global (datetime): End time, maximum over all considered
+                vessels, from the AIS data.
+            identifier (int): Identifier (ID) for the vessel.
+            ship_ais_df (pd.DataFrame): DataFrame containing AIS data for the
+                vessel.
+            ship_info_df (pd.DataFrame | None): DataFrame containing information
+                about the vessel.
+            utm_zone (int): UTM zone for the ENU frame used. Defaults to 33.
+            sample_interval (float): Desired sampling interval for the
+                trajectory. Defaults to 1.0 seconds.
 
         Returns:
             VesselData: Object containing vessel data.
@@ -145,9 +145,7 @@ class VesselData:
         # Remove NaNs and interpolate to desired sampling interval
         first_valid_idx = ship_ais_df.nav_status.first_valid_index()
         last_valid_idx = ship_ais_df.nav_status.last_valid_index()
-        vessel.nav_status = ship_ais_df.nav_status.tolist()[
-            first_valid_idx : last_valid_idx + 1
-        ]
+        vessel.nav_status = ship_ais_df.nav_status.tolist()[first_valid_idx : last_valid_idx + 1]
         vessel.status = determine_status(vessel.nav_status)
 
         if first_valid_idx > 0:
@@ -172,14 +170,10 @@ class VesselData:
         vessel.timestamps = interpolated_times
         n_msgs = len(interpolated_times)
         vessel.latlon = np.zeros((2, n_msgs))
-        lat_interpolated = interp1d(
-            original_times, ship_ais_df.lat.tolist(), kind="linear", bounds_error=False
-        )
+        lat_interpolated = interp1d(original_times, ship_ais_df.lat.tolist(), kind="linear", bounds_error=False)
         vessel.latlon[0, :] = lat_interpolated(interpolated_times)
 
-        lon_interpolated = interp1d(
-            original_times, ship_ais_df.lon.tolist(), kind="linear", bounds_error=False
-        )
+        lon_interpolated = interp1d(original_times, ship_ais_df.lon.tolist(), kind="linear", bounds_error=False)
         vessel.latlon[1, :] = lon_interpolated(interpolated_times)
 
         first_valid_idx = int(np.argwhere(~np.isnan(vessel.latlon[0, :])).T[0][0])
@@ -202,37 +196,25 @@ class VesselData:
                 vessel.xy[0, k + 1] - vessel.xy[0, k],
                 vessel.xy[1, k + 1] - vessel.xy[1, k],
             )
-        vessel.forward_heading_estimate[last_valid_idx] = (
-            vessel.forward_heading_estimate[last_valid_idx - 1]
-        )
+        vessel.forward_heading_estimate[last_valid_idx] = vessel.forward_heading_estimate[last_valid_idx - 1]
 
         for k in range(first_valid_idx + 1, last_valid_idx):
             vessel.backward_heading_estimate[k] = np.arctan2(
                 vessel.xy[0, k] - vessel.xy[0, k - 1],
                 vessel.xy[1, k] - vessel.xy[1, k - 1],
             )
-        vessel.backward_heading_estimate[first_valid_idx] = (
-            vessel.forward_heading_estimate[first_valid_idx]
-        )
+        vessel.backward_heading_estimate[first_valid_idx] = vessel.forward_heading_estimate[first_valid_idx]
 
-        cog_interpolated = interp1d(
-            original_times, ship_ais_df.cog.tolist(), kind="linear", bounds_error=False
-        )
-        vessel.cog = mf.wrap_angle_to_pmpi(
-            np.deg2rad(cog_interpolated(interpolated_times))
-        )
+        cog_interpolated = interp1d(original_times, ship_ais_df.cog.tolist(), kind="linear", bounds_error=False)
+        vessel.cog = mf.wrap_angle_to_pmpi(np.deg2rad(cog_interpolated(interpolated_times)))
 
-        sog_interpolated = interp1d(
-            original_times, ship_ais_df.sog.tolist(), kind="linear", bounds_error=False
-        )
+        sog_interpolated = interp1d(original_times, ship_ais_df.sog.tolist(), kind="linear", bounds_error=False)
         vessel.sog = mf.knots2mps(sog_interpolated(interpolated_times))
 
         vessel.first_valid_idx = first_valid_idx
         vessel.last_valid_idx = last_valid_idx
 
-        vessel.travel_dist = compute_total_dist_travelled(
-            vessel.xy[:, first_valid_idx : last_valid_idx + 1]
-        )
+        vessel.travel_dist = compute_total_dist_travelled(vessel.xy[:, first_valid_idx : last_valid_idx + 1])
 
         if vessel.travel_dist < 500.0:
             vessel.status = Status.AtAnchor
@@ -258,8 +240,8 @@ class VesselData:
             epsilon_d_course (float): Course change threshold.
             epsilon_speed (float): Speed change threshold.
             epsilon_d_speed (float): Speed derivative threshold.
+            epsilon_dist (float): Distance threshold. Defaults to 500.0.
         """
-
         # Only compute derivatives if the vessel has traveled more than 500 meters
         if self.travel_dist < epsilon_dist:
             self.status = Status.AtAnchor
@@ -284,12 +266,11 @@ class VesselData:
                 speed = speed[~np.isnan(speed)]
                 try:
                     self.sog_der[target_area] = [
-                        np.dot([speed[i], speed[i + 1], speed[i + 2]], [-0.5, 0.0, 0.5])
-                        for i in range(len(speed) - 2)
+                        np.dot([speed[i], speed[i + 1], speed[i + 2]], [-0.5, 0.0, 0.5]) for i in range(len(speed) - 2)
                     ]
                 except Exception as e:
                     print(e)
-                    warnings.warn("self reentering the area may cause problems.")
+                    warnings.warn("self reentering the area may cause problems.", stacklevel=2)
 
             # Calculate derivatives of yaw
             cog_smoothed = self.cog.copy()
@@ -298,9 +279,7 @@ class VesselData:
             cog_diff[np.isnan(cog_diff)] = 0.0
             cog_diff[abs(cog_diff) < np.pi] = 0.0
             cog_diff[cog_diff < -np.pi] = -2.0 * np.pi
-            cog_diff[cog_diff > np.pi] = (
-                2.0 * np.pi
-            )  # cog_diff is now 2pi or -2pi at jumps from pi to -pi or opposite
+            cog_diff[cog_diff > np.pi] = 2.0 * np.pi  # cog_diff is now 2pi or -2pi at jumps from pi to -pi or opposite
 
             cumsum_cog_diff = np.cumsum(cog_diff, axis=0)
 
@@ -310,14 +289,9 @@ class VesselData:
                 cog_smoothed[target_area] - cumsum_cog_diff[target_area]
             )  # avoids counting sudden changes from pi to -pi or opposite count as maneuvers
 
-            cog_smoothed[target_area] = filters.gaussian_filter(
-                cog_smoothed[target_area], sigma=2
-            )
+            cog_smoothed[target_area] = filters.gaussian_filter(cog_smoothed[target_area], sigma=2)
 
-            target_area = [
-                np.logical_and(target_area[i], target_area[i + 2])
-                for i in range(len(target_area) - 2)
-            ]
+            target_area = [np.logical_and(target_area[i], target_area[i + 2]) for i in range(len(target_area) - 2)]
             target_area = np.append(False, target_area)
             target_area = np.append(target_area, False)
             self.maneuver_der = np.zeros((3, self.cog.size))
@@ -339,10 +313,7 @@ class VesselData:
                 ]
 
                 # Added again apparently because target area is changed
-                target_area = [
-                    np.logical_and(target_area[i], target_area[i + 2])
-                    for i in range(len(target_area) - 2)
-                ]
+                target_area = [np.logical_and(target_area[i], target_area[i + 2]) for i in range(len(target_area) - 2)]
                 target_area = np.append(False, target_area)
                 target_area = np.append(target_area, False)
                 self.maneuver_der[2, target_area] = [
@@ -372,11 +343,9 @@ class VesselData:
                     )
                     for i in range(len(cog_smoothed) - 4)
                 ]
-            self.find_maneuver_detect_index_der(
-                epsilon_d_course, epsilon_speed, epsilon_d_speed
-            )
+            self.find_maneuver_detect_index_der(epsilon_d_course, epsilon_speed, epsilon_d_speed)
 
-    def find_maneuver_detect_index_der(
+    def find_maneuver_detect_index_der(  # noqa: C901, PLR0912, PLR0915
         self, epsilon_d_course: float, epsilon_speed: float, epsilon_d_speed: float
     ) -> None:
         """Finds indices where a maneuver, course or speed, is started.
@@ -396,7 +365,6 @@ class VesselData:
             epsilon_speed (float): Speed threshold for vessel to be considered moving, [m/s].
             epsilon_d_speed (float): Speed change threshold for maneuver detection, [m/s^2].
         """
-
         # Course change detection
         cont_man = False
         # third_derivative_zeros_idx = []
@@ -409,9 +377,7 @@ class VesselData:
             if i > 0 and len(detection_idx) > 0 and cont_man:
                 # Maneuver stops if first derivative goes to zero
                 if (
-                    np.sign(self.maneuver_der[0, i])
-                    + np.sign(self.maneuver_der[0, i - 1])
-                    == 0
+                    np.sign(self.maneuver_der[0, i]) + np.sign(self.maneuver_der[0, i - 1]) == 0
                     or self.maneuver_der[1, i] == 0
                 ):
                     # first_derivative_zeros_idx.append(i)
@@ -426,7 +392,8 @@ class VesselData:
                 continue
 
             # # Register third derivative zeros / zero-crossings
-            # if np.sign(self.maneuver_der[2, i]) + np.sign(self.maneuver_der[2, i - 1]) == 0 or self.maneuver_der[2, i] == 0:
+            # if np.sign(self.maneuver_der[2, i]) + np.sign(self.maneuver_der[2, i - 1]) == 0
+            # or self.maneuver_der[2, i] == 0:
             #     third_derivative_zeros_idx.append(i)
 
             # Maneuver if first derivative above threshold
@@ -454,11 +421,10 @@ class VesselData:
                 if change:
                     start_idx = i
                     cont_man = True
-            else:
-                if not change:
-                    stop_idx = i - 1
-                    cont_man = False
-                    speed_maneuvers.append([start_idx, stop_idx])
+            elif not change:
+                stop_idx = i - 1
+                cont_man = False
+                speed_maneuvers.append([start_idx, stop_idx])
 
         # Book-keeping
         n_maneuvers = len(course_maneuvers) + len(speed_maneuvers)
@@ -490,18 +456,21 @@ class VesselData:
         self.sog_maneuvers_idx = np.array(final_speed_man, dtype=int)
         self.cog_maneuvers_idx = np.array(final_course_man, dtype=int)
 
-    def find_maneuver_detect_index(
+    def find_maneuver_detect_index(  # noqa: PLR0912, PLR0915
         self, epsilon_d_course: float, epsilon_d_speed: float
     ) -> None:
-        """
-        Find indices i where the *vessel*'s speed and/or course change exceeds *epsilon_speed*
-        and/or *epsilon_d_course* respectively. The change is defined as the difference between
-        the speed/course at index i and index i + step_length, where the step length is defined by the sample frequency
-        of the *vessel*'s state such that the time between sample i and i + step_length is one second.
+        """Find indices i where the *vessel*'s speed and/or course change exceeds thresholds.
+
+        The change is defined as the difference between the speed/course at index
+        i and index i + step_length, where the step length is defined by the
+        sample frequency of the *vessel*'s state such that the time between
+        sample i and i + step_length is one second.
 
         Args:
-            epsilon_d_course (float): Course change threshold  for maneuver detection, [rad/s].
-            epsilon_d_speed (float): Speed change threshold for maneuver detection, [m/s^2].
+            epsilon_d_course (float): Course change threshold for maneuver
+                detection, [rad/s].
+            epsilon_d_speed (float): Speed change threshold for maneuver
+                detection, [m/s^2].
 
         Sets the following parameters:
 
@@ -521,26 +490,16 @@ class VesselData:
         n_msgs = len(self.timestamps)
         for i in range(step_length, n_msgs, step_length):
             delta_speed_curr = abs(self.sog[i] - self.sog[i - step_length])
-            delta_course_curr = mf.wrap_angle_diff_to_02pi(
-                self.xy[2, i], self.xy[2, i - step_length]
-            )
+            delta_course_curr = mf.wrap_angle_diff_to_02pi(self.xy[2, i], self.xy[2, i - step_length])
 
             is_course_maneuver = delta_course_curr > epsilon_d_course
             is_speed_maneuver = delta_speed_curr > epsilon_d_speed
 
             if is_course_maneuver:
-                sign_delta_course_curr = np.sign(
-                    self.sog[i] - self.sog[i - step_length]
-                )
-                sign_change_course = bool(
-                    sign_delta_course_curr + sign_delta_course_prev
-                )
-                is_new_course_maneuver = (
-                    not is_course_maneuver_prev
-                ) or sign_change_course
-                is_continued_course_maneuver = (
-                    is_course_maneuver_prev and not sign_change_course
-                )
+                sign_delta_course_curr = np.sign(self.sog[i] - self.sog[i - step_length])
+                sign_change_course = bool(sign_delta_course_curr + sign_delta_course_prev)
+                is_new_course_maneuver = (not is_course_maneuver_prev) or sign_change_course
+                is_continued_course_maneuver = is_course_maneuver_prev and not sign_change_course
                 is_end_course_maneuver = False
                 sign_delta_course_prev = sign_delta_course_curr
             else:
@@ -550,20 +509,13 @@ class VesselData:
                 is_end_course_maneuver = is_course_maneuver_prev
 
             if is_speed_maneuver:
-                if (
-                    mf.wrap_angle_to_02pi(self.cog[i - step_length] + delta_course_curr)
-                    == self.cog[i]
-                ):
+                if mf.wrap_angle_to_02pi(self.cog[i - step_length] + delta_course_curr) == self.cog[i]:
                     sign_delta_speed_curr = 1
                 else:
                     sign_delta_speed_curr = -1
                 sign_change_speed = bool(sign_delta_speed_curr + sign_delta_speed_prev)
-                is_new_speed_maneuver = (
-                    not is_speed_maneuver_prev
-                ) or sign_change_speed
-                is_continued_speed_maneuver = (
-                    is_speed_maneuver_prev and not sign_change_speed
-                )
+                is_new_speed_maneuver = (not is_speed_maneuver_prev) or sign_change_speed
+                is_continued_speed_maneuver = is_speed_maneuver_prev and not sign_change_speed
                 is_end_speed_maneuver = False
                 sign_delta_speed_prev = sign_delta_speed_curr
             else:
@@ -585,9 +537,7 @@ class VesselData:
                 delta_course_tot_list.append(np.nan)
                 delta_speed_tot += delta_speed_curr
 
-            if (
-                is_continued_course_maneuver
-            ):  # Continued maneuver from previous time step
+            if is_continued_course_maneuver:  # Continued maneuver from previous time step
                 delta_course_tot += delta_course_curr
             if is_continued_speed_maneuver:
                 delta_speed_tot += delta_speed_curr
@@ -623,9 +573,7 @@ class VesselData:
         self.backward_heading_estimate = self.backward_heading_estimate[::step]
         self.sog_der = self.sog_der[::step]
         self.maneuver_der = self.maneuver_der[::step]
-        self.first_valid_idx, self.last_valid_idx = mhm.index_of_first_and_last_non_nan(
-            self.cog
-        )
+        self.first_valid_idx, self.last_valid_idx = mhm.index_of_first_and_last_non_nan(self.cog)
 
     def compute_closest_grounding_dist(self, enc: senc.ENC):
         """Compute the distance to the closest grounding point along the trajectory.
@@ -638,15 +586,14 @@ class VesselData:
         Args:
             enc (senc.ENC): The Electronic Navigational Chart to check against.
 
-        Returns
-            Tuple[float, float]: The distance to the closest grounding point, the distance vector and the sample index at which this occurs.
+        Returns:
+            Tuple[float, float]: The distance to the closest grounding point, the distance vector and
+                the sample index at which this occurs.
         """
-        self.grounding_dist, self.grounding_dist_vec, self.grounding_idx = (
-            mapf.compute_closest_grounding_dist(
-                self.xy[:, self.first_valid_idx : self.last_valid_idx + 1],
-                self.min_depth,
-                enc,
-            )
+        self.grounding_dist, self.grounding_dist_vec, self.grounding_idx = mapf.compute_closest_grounding_dist(
+            self.xy[:, self.first_valid_idx : self.last_valid_idx + 1],
+            self.min_depth,
+            enc,
         )
 
     def plot_trajectory(self) -> plt.Axes:
@@ -657,9 +604,7 @@ class VesselData:
             label=self.name,
         )
         for k in range(self.first_valid_idx, self.last_valid_idx, 5):
-            ship_poly = mapf.create_ship_polygon(
-                self.xy[1, k], self.xy[0, k], self.cog[k], self.length, self.width
-            )
+            ship_poly = mapf.create_ship_polygon(self.xy[1, k], self.xy[0, k], self.cog[k], self.length, self.width)
             y_ship, x_ship = ship_poly.exterior.xy
             ax.fill(y_ship, x_ship, alpha=0.5, facecolor="b")
 
@@ -678,20 +623,20 @@ class VesselData:
         ax.legend(loc="best")
         # plt.show(block=False)
 
-    def plot_maneuver_detection_information(
+    def plot_maneuver_detection_information(  # noqa: C901, PLR0912, PLR0915
         self, epsilon_d_course: float, epsilon_speed: float, epsilon_d_speed: float
-    ) -> Tuple[list, list]:
-        """Plots course, 1st, 2nd and 3rd derivative of course, speed and 1st derivative of speed along with thresholds
-        used in maneuver detection.
+    ) -> tuple[list, list]:
+        """Plots course, 1st, 2nd and 3rd derivative of course, speed and 1st derivative of speed.
+
+        Along with thresholds used in maneuver detection.
 
         Args:
-            vessel: Vessel data.
-            n_msgs: Number of messages to plot.
-            epsilon_speed: Threshold for speed change.
-            epsilon_d_speed: Threshold for 1st derivative of speed.
+            epsilon_d_course (float): Threshold for course change.
+            epsilon_speed (float): Threshold for speed change.
+            epsilon_d_speed (float): Threshold for 1st derivative of speed.
 
         Returns:
-            Tuple[list, list]: Output lists of figure and axes objects.
+            tuple[list, list]: Output lists of figure and axes objects.
         """
         figs = []
         axes = []
@@ -717,9 +662,7 @@ class VesselData:
             if stat_idx[-1] != len(self.cog):  # Moving at end
                 stat_idx = np.append(stat_idx, len(self.cog))
 
-        cp = np.concatenate(
-            (stat_idx, self.cog_maneuvers_idx), axis=None
-        )  # Change points
+        cp = np.concatenate((stat_idx, self.cog_maneuvers_idx), axis=None)  # Change points
 
         if len(cp) > 0:
             fig1, ax1 = plt.subplots(nrows=4, ncols=1)
@@ -778,8 +721,7 @@ class VesselData:
             for i in range(0, len(cp) - 1):
                 start = int(cp[i])
                 end = int(cp[i + 1]) + 1  # Add one to include endpoint in line.
-                if end > len(self.cog):
-                    end = len(self.cog)
+                end = min(end, len(self.cog))
 
                 if changes[i] == ":" or changes[i] == "-":
                     style = changes[i]
@@ -877,9 +819,7 @@ class VesselData:
                 alpha=0.5,
                 label=r"+/- $\epsilon_{\dot{\chi}}$",
             )
-            axes1[1].axhline(
-                np.rad2deg(-epsilon_d_course), color="darkgreen", alpha=0.5
-            )
+            axes1[1].axhline(np.rad2deg(-epsilon_d_course), color="darkgreen", alpha=0.5)
 
             if len(self.cog_maneuvers_idx) > 0:
                 handles = [start_pts0, end_pts0]
@@ -927,9 +867,7 @@ class VesselData:
 
         # SPEED MANEUVERS ----------------------------------------------------------------------------------------------
 
-        cp = np.concatenate(
-            (stat_idx, self.sog_maneuvers_idx), axis=None
-        )  # Change points
+        cp = np.concatenate((stat_idx, self.sog_maneuvers_idx), axis=None)  # Change points
 
         if len(cp) > 0:
             fig2, ax2 = plt.subplots(nrows=2, ncols=1)
@@ -973,8 +911,7 @@ class VesselData:
             for i in range(0, len(cp) - 1):
                 start = int(cp[i])
                 end = int(cp[i + 1]) + 1  # Add one to include endpoint in line.
-                if end > len(self.sog_der):
-                    end = len(self.sog_der)
+                end = min(end, len(self.sog_der))
                 if changes[i] == ":" or changes[i] == "-":
                     style = changes[i]
                 elif changes[i] == "r" or changes[i] == "b":
@@ -992,13 +929,9 @@ class VesselData:
                     linestyle=style,
                 )
 
-            lim0 = axes2[0].axhline(
-                epsilon_speed, color="darkgreen", alpha=0.5, label=r"+/- $\epsilon_{U}$"
-            )
+            lim0 = axes2[0].axhline(epsilon_speed, color="darkgreen", alpha=0.5, label=r"+/- $\epsilon_{U}$")
             axes2[0].axhline(epsilon_speed, color="darkgreen", alpha=0.5)
-            axes2[0].legend(
-                [lim0], [lim0.get_label()], loc="lower right", prop={"size": 11}
-            )
+            axes2[0].legend([lim0], [lim0.get_label()], loc="lower right", prop={"size": 11})
 
             lim1 = axes2[1].axhline(
                 epsilon_d_speed,
@@ -1037,7 +970,7 @@ class VesselData:
         return figs, axes
 
 
-def determine_status(nav_status_arr: np.ndarray) -> Status:
+def determine_status(nav_status_arr: np.ndarray) -> Status:  # noqa: D103
     mean_status = int(np.mean(nav_status_arr))
     if mean_status == 0:
         status = Status.UnderWayUsingEngine
@@ -1089,48 +1022,36 @@ def compute_new_cpa(
     vessel: VesselData,
     obst: VesselData,
     deviating_traj_segment: geometry.LineString,
-) -> Tuple[dict, dict, float, int]:
-    """
-    Calculates new DCPA and CPA positions for obstacle and ownship for an alternative own-ship path.
+) -> tuple[dict, dict, float, int]:
+    """Calculates new DCPA and CPA positions for obstacle and ownship for an alternative own-ship path.
 
     Args:
         vessel (VesselData): Ownship vessel data.
         obst (VesselData): Obstacle vessel data.
-        deviating_traj_segment (geometry.LineString): The part of the alternative trajectory that deviates from the original path.
+        deviating_traj_segment (geometry.LineString): The part of the alternative trajectory that deviates
+            from the original path.
 
     Returns:
-        Tuple[dict, dict, float, int]: New DCPA and CPA positions for the ownship and obstacle, and the new DCPA + its index
+        tuple[dict, dict, float, int]: New DCPA and CPA positions for the ownship and obstacle, and the new
+            DCPA + its index.
     """
     dubins_p0, dubins_p1 = deviating_traj_segment.boundary.geoms
     dubins_p0_np = np.array(dubins_p0.coords)
     dubins_p1_np = np.array(dubins_p1.coords)
-    own_traj_arr = vessel.xy[
-        :, vessel.first_valid_idx : vessel.last_valid_idx + 1
-    ].transpose()
+    own_traj_arr = vessel.xy[:, vessel.first_valid_idx : vessel.last_valid_idx + 1].transpose()
 
     dists = np.sqrt(np.sum((own_traj_arr - dubins_p0_np) ** 2, axis=1))
-    start_idx = int(
-        np.argmin(dists)
-    )  # Index where the alternative path deviates from the original trajectory
+    start_idx = int(np.argmin(dists))  # Index where the alternative path deviates from the original trajectory
     dists = np.sqrt(np.sum((own_traj_arr - dubins_p1_np) ** 2, axis=1))
-    end_idx = int(
-        np.argmin(dists)
-    )  # Index where the alternative path rejoins from the original trajectory
+    end_idx = int(np.argmin(dists))  # Index where the alternative path rejoins from the original trajectory
 
     dt = vessel.timestamps[1] - vessel.timestamps[0]
-    dist_dt = (
-        vessel.sog[vessel.first_valid_idx + start_idx] * dt
-    )  # Calculate approximate travel length per time step
+    dist_dt = vessel.sog[vessel.first_valid_idx + start_idx] * dt  # Calculate approximate travel length per time step
     num_vert = int(round(deviating_traj_segment.length / dist_dt))
     if num_vert == 0:
         num_vert = 1
     interpol_dubins_traj = geometry.LineString(
-        [
-            deviating_traj_segment.interpolate(
-                float(n) / float(num_vert), normalized=True
-            )
-            for n in range(num_vert + 1)
-        ]
+        [deviating_traj_segment.interpolate(float(n) / float(num_vert), normalized=True) for n in range(num_vert + 1)]
     )
     interpol_dubins_traj_arr = np.array(interpol_dubins_traj.coords)
     alt_traj_arr = np.concatenate(
@@ -1156,12 +1077,8 @@ def compute_new_cpa(
         (alt_traj_arr[1, new_cpa_idx + 1] - alt_traj_arr[1, new_cpa_idx]),
         (alt_traj_arr[0, new_cpa_idx + 1] - alt_traj_arr[0, new_cpa_idx]),
     )
-    cpa_forward_heading_estimate = np.rad2deg(
-        -mf.wrap_angle_to_pmpi(cpa_forward_heading_estimate - np.pi / 2)
-    )
-    obst_cpa_forward_heading_estimate = np.rad2deg(
-        obst.forward_heading_estimate[new_cpa_idx]
-    )
+    cpa_forward_heading_estimate = np.rad2deg(-mf.wrap_angle_to_pmpi(cpa_forward_heading_estimate - np.pi / 2))
+    obst_cpa_forward_heading_estimate = np.rad2deg(obst.forward_heading_estimate[new_cpa_idx])
     own_cpa = {
         "x": alt_traj_arr[0, new_cpa_idx],
         "y": alt_traj_arr[1, new_cpa_idx],

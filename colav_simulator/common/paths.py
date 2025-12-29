@@ -1,5 +1,4 @@
-"""
-paths.py
+"""paths.py.
 
 Summary:
     Contains paths to default configuration files and schemas.
@@ -10,11 +9,11 @@ Author: Trym Tengesdal
 import pathlib
 
 
-def _get_package_root():
+def _get_package_root() -> pathlib.Path:
     """Get the root directory of the colav_simulator package.
 
     Returns:
-        Path: Package root directory (always the actual package, never project root)
+        pathlib.Path: Package root directory (always the actual package, never project root)
 
     Raises:
         RuntimeError: If package root cannot be determined
@@ -28,9 +27,7 @@ def _get_package_root():
 
     # Otherwise, verify it's local development (project root should have config/scenarios)
     project_root = package_root.parent
-    if not (
-        (project_root / "config").exists() or (project_root / "scenarios").exists()
-    ):
+    if not ((project_root / "config").exists() or (project_root / "scenarios").exists()):
         raise RuntimeError(
             f"Could not determine package root. "
             f"Package file: {package_file}, "
@@ -41,7 +38,7 @@ def _get_package_root():
     return package_root
 
 
-package = _get_package_root()
+package: pathlib.Path = _get_package_root()
 is_installed = "site-packages" in str(package) or "dist-packages" in str(package)
 schemas = package / "schemas"
 if is_installed:
