@@ -5,11 +5,11 @@ Shows how to use the simulator with a colav system and the VIMMJIPDA tracker.
 Requires installation of the vimmjipda package at https://github.com/NTNU-Autoship-Internal/vimmjipda
 """
 
-import importlib
 from pathlib import Path
 
 import pytest
-import vimmjipda.vimmjipda_tracker_interface as vti
+
+vti = pytest.importorskip("vimmjipda.vimmjipda_tracker_interface")
 
 import colav_simulator.common.paths as dp
 import colav_simulator.core.colav.colav_interface as ci
@@ -18,8 +18,8 @@ import colav_simulator.simulator as sim
 
 
 @pytest.mark.skipif(
-    not importlib.util.find_spec("vimmjipda") or not (Path.home() / "vimmjipda/config/vimmjipda.yaml").exists(),
-    reason="vimmjipda not found",
+    not (Path.home() / "vimmjipda/config/vimmjipda.yaml").exists(),
+    reason="vimmjipda config not found",
 )
 def test_simulator_vimmjipda() -> None:
     vimmjipda_config_path = (
