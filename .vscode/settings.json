@@ -1,0 +1,23 @@
+{
+  "files.exclude": {
+    "**/.gdb/**": true,
+    "**/*.gdbtable": true,
+    "**/*.gdbtablx": true,
+    "**/*.gdbindexes": true,
+    "**/*.atx": true,
+    "**/*.spx": true,
+    "**/*.horizon": true
+  },
+  "files.watcherExclude": {
+    "**/data/enc/**/*.gdb/**": true,
+    "**/data/enc/**/*.gdbtable": true,
+    "**/data/enc/**/*.gdbtablx": true,
+    "**/data/enc/**/*.gdbindexes": true,
+    "**/data/enc/**/*.atx": true,
+    "**/data/enc/**/*.spx": true,
+    "**/data/enc/**/*.horizon": true
+  },
+  "search.exclude": {
+    "**/data/enc/**": true
+  }
+}
