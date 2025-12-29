@@ -163,10 +163,14 @@ class Visualizer:
         self.misc_plt_handles: dict = {}  # Extra handles used for live plotting
         self.background: Any = None  # background for live plotting
         self.background_handles: dict = {}  # handles for the background of the live plot
-        if self._config.matplotlib_backend == "Agg" and platform.system() == "Linux":
-            mpl.use("Agg")
-        else:
-            mpl.use("MacOSX" if platform.system() == "Darwin" else "TkAgg")
+        try:
+            mpl.use(self._config.matplotlib_backend)
+        except Exception as e:
+            print(f"Error setting matplotlib backend: {e}")
+            if platform.system() == "Darwin":
+                mpl.use("MacOSX")
+            else:
+                mpl.use("Agg")
         print(f"Visualizer using backend: {mpl.get_backend()}")
         self.xlimits = [-1e10, 1e10]
         self.ylimits = [-1e10, 1e10]
@@ -1527,7 +1531,7 @@ class Visualizer:
                         do_estimates_j[0, first_valid_idx_track:end_idx_j],
                         color=do_color,
                         linewidth=ship_lw,
-                        label=f"DO {do_labels[j] -1} est. traj.",
+                        label=f"DO {do_labels[j] - 1} est. traj.",
                         zorder=zorder_patch - 2,
                     )
 
