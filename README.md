@@ -49,7 +49,7 @@ Install project:
 uv sync
 ```
 
-To use `seacharts` in the simulator for map visualizations and grounding hazard considerations, you need to download `.gdb` files from <https://kartkatalog.geonorge.no> in UTM 32 or 33 (see <https://github.com/trymte/seacharts> for instructions), and put the unzipped .gdb-files e.g. in an `enc_data/` folder of your choice. By default, the `ScenarioGenerator` will expand relative map data file paths to `$HOME/enc_data"` unless absolute.
+To use `seacharts` in the simulator for map visualizations and grounding hazard considerations, you need to download `.gdb` files from <https://kartkatalog.geonorge.no> in UTM 32 or 33 (see <https://github.com/trymte/seacharts> for instructions), and put the unzipped .gdb-files e.g. in an `enc_data/` folder of your choice. By default, the `ScenarioGenerator` will expand relative map data file paths to `data/enc"` unless absolute.
 
 If you get troubles installing `gdal`, this might be due to:
 - The native `gdal`library not being installed, see e.g. <https://github.com/OSGeo/gdal/issues/2166>

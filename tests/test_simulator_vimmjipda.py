@@ -18,7 +18,7 @@ import colav_simulator.simulator as sim
 
 
 @pytest.mark.skipif(
-    not importlib.util.find_spec("vimmjipda"),
+    not importlib.util.find_spec("vimmjipda") or not (Path.home() / "vimmjipda/config/vimmjipda.yaml").exists(),
     reason="vimmjipda not found",
 )
 def test_simulator_vimmjipda() -> None:

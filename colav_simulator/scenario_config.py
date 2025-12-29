@@ -302,7 +302,7 @@ class ScenarioConfig:
         if map_data_files is None:
             return None
 
-        enc_data_dir = Path.home() / "enc_data"
+        enc_data_dir = dp.enc_data
         resolved_map_data_files = []
         missing_files = []
 

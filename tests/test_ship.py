@@ -4,8 +4,6 @@ Use the test_ship function to test the ship's behavior in a scenario,
 and/or tune your specific guidance algorithm + controller.
 """
 
-from pathlib import Path
-
 import numpy as np
 from matplotlib import pyplot as plt
 
@@ -30,10 +28,7 @@ def test_ship() -> None:  # noqa: PLR0915
     utm_zone = 33
     map_size = [1400.0, 1500.0]
     map_orig = np.array([6573700.0, -31924.0])
-    map_data_files = [
-        str(Path.home() / "enc_data" / "Rogaland_utm33.gdb")
-    ]  # You need to create this folder and put a downloaded Rogaland .gdb file in it.
-    # See the README.md file for more information.
+    map_data_files = [str(dp.enc_data / "Rogaland_utm33.gdb")]
 
     # Put new_data to True to load map data in ENC if it is not already loaded
     scenario_generator = ScenarioGenerator(

@@ -1,12 +1,11 @@
 """Test file used for tuning a control system for the Gunnerus ship model."""
 
-from pathlib import Path
-
 import numpy as np
 from matplotlib import pyplot as plt
 
 import colav_simulator.common.map_functions as mapf
 import colav_simulator.common.math_functions as mf
+import colav_simulator.common.paths as dp
 import colav_simulator.core.sensing as sensorss
 from colav_simulator.common import plotters
 from colav_simulator.core import controllers, guidances, models, ship, stochasticity
@@ -26,10 +25,7 @@ def test_gunnerus() -> None:  # noqa: PLR0915
     utm_zone = 33
     map_size = [2000.0, 2000.0]
     map_origin_enu = [-35544.0, 6579000.0]
-    map_data_files = [
-        str(Path.home() / "enc_data" / "Rogaland_utm33.gdb")
-    ]  # You need to create this folder and put a downloaded Rogaland .gdb file in it.
-    # See the README.md file for more information.
+    map_data_files = [str(dp.enc_data / "Rogaland_utm33.gdb")]
 
     # Put new_data to True to load map data in ENC if it is not already loaded
     scenario_generator = ScenarioGenerator(

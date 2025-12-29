@@ -46,6 +46,7 @@ if is_installed:
     config = package / "config"
     scenarios = package / "scenarios"
     output = package / "output"
+    project_root = package
 else:
     # Local development: schemas are in package, config/scenarios are in project root
     project_root = package.parent
@@ -61,8 +62,8 @@ simulator_config = config / "simulator.yaml"
 scenario_generator_config = config / "scenario_generator.yaml"
 seacharts_config = config / "seacharts.yaml"
 
-enc_data = package / "data" / "map"
-ais_data = package / "data" / "ais"
+enc_data = project_root / "data" / "enc"
+ais_data = project_root / "data" / "ais"
 saved_scenarios = scenarios / "saved"
 
 animation_output = output / "animations"
